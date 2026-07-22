@@ -10,8 +10,8 @@ export async function createWhatsAppInstance(formData: FormData) {
   }
 
   try {
-    const evo = new EvolutionClient();
-    const chatwoot = new ChatwootClient();
+    const evo = await EvolutionClient.init();
+    const chatwoot = await ChatwootClient.init();
 
     // 1. Get Chatwoot Account ID
     const accountId = await chatwoot.setAccountId();

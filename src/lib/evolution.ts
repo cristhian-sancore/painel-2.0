@@ -1,10 +1,31 @@
-export class EvolutionClient {
-  private url: string;
-  private apiKey: string;
+import { prisma } from "./prisma";
 
-  constructor() {
-    this.url = process.env.EVOLUTION_API_URL || "";
-    this.apiKey = process.env.EVOLUTION_API_KEY || "";
+export class EvolutionClient {
+  private url: string = "";
+  private apiKey: string = "";
+
+  private constructor() {}
+
+  public static async init() {
+    const client = new EvolutionClient();
+    
+    // Buscar do BD
+    const urlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } });
+    const keySetting = await prisma.setting.findUnique({ where: { key: "evolution_key" } });
+    
+    client.url = urlSetting?.value || process.env.EVOLUTION_API_URL || "";
+    client.apiKey = keySetting?.value || process.env.EVOLUTION_API_KEY || "";
+    
+    if (!client.url || !client.apiKey) {
+      throw new Error("As configurações da API Evolution não foram definidas no painel. Vá em Configurações Globais.");
+    }
+
+    // Remover a / do final se existir
+    if (client.url.endsWith('/')) {
+      client.url = client.url.slice(0, -1);
+    }
+    
+    return client;
   }
 
   private get headers() {
@@ -50,11 +71,14 @@ export class EvolutionClient {
 
   // 3. Connect to Chatwoot
   public async connectToChatwoot(instanceName: string, accountId: number) {
-    const chatwootUrl = process.env.CHATWOOT_API_URL || "";
-    const chatwootToken = process.env.CHATWOOT_ACCESS_TOKEN || "";
+    const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
+    const chatwootTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
+
+    const chatwootUrl = chatwootUrlSetting?.value || process.env.CHATWOOT_API_URL || "";
+    const chatwootToken = chatwootTokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
 
     if (!chatwootUrl || !chatwootToken) {
-      throw new Error("Credenciais do Chatwoot ausentes no .env");
+      throw new Error("Credenciais do Chatwoot ausentes. Vá em Configurações Globais para configurar.");
     }
 
     const res = await fetch(`${this.url}/chatwoot/set/${instanceName}`, {

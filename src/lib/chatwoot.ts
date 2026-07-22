@@ -1,11 +1,30 @@
+import { prisma } from "./prisma";
+
 export class ChatwootClient {
-  private url: string;
-  private accessToken: string;
+  private url: string = "";
+  private accessToken: string = "";
   private accountId: number | null = null;
 
-  constructor() {
-    this.url = process.env.CHATWOOT_API_URL || "";
-    this.accessToken = process.env.CHATWOOT_ACCESS_TOKEN || "";
+  private constructor() {}
+
+  public static async init() {
+    const client = new ChatwootClient();
+    
+    const urlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
+    const tokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
+    
+    client.url = urlSetting?.value || process.env.CHATWOOT_API_URL || "";
+    client.accessToken = tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
+    
+    if (!client.url || !client.accessToken) {
+      throw new Error("As configurações do Chatwoot não foram definidas no painel. Vá em Configurações Globais.");
+    }
+
+    if (client.url.endsWith('/')) {
+      client.url = client.url.slice(0, -1);
+    }
+
+    return client;
   }
 
   private get headers() {

@@ -4,12 +4,13 @@ import { MessageSquare, Inbox, Users, Phone } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function ChatwootPage() {
-  const chatwoot = new ChatwootClient();
   let inboxes = [];
   let conversations = [];
   let error = null;
 
   try {
+    const chatwoot = await ChatwootClient.init();
+    
     const inboxesData = await chatwoot.getInboxes();
     inboxes = inboxesData.payload || [];
 
