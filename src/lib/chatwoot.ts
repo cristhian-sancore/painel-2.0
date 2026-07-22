@@ -210,4 +210,27 @@ export class ChatwootClient {
 
     return true;
   }
+
+  // 10. Create Team
+  public async createTeam(name: string, description: string = "", allowAutoAssign: boolean = true) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/teams`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        name: name,
+        description: description,
+        allow_auto_assign: allowAutoAssign
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Failed to create team in chatwoot:", errText);
+      throw new Error(`Failed to create team: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
 }

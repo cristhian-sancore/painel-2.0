@@ -27,6 +27,7 @@ export default function GroupsPage() {
   // Form State
   const [name, setName] = useState("");
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
+  const [createTeamInChatwoot, setCreateTeamInChatwoot] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -49,6 +50,7 @@ export default function GroupsPage() {
     setEditingGroup(null);
     setName("");
     setSelectedPerms([]);
+    setCreateTeamInChatwoot(true);
     setIsModalOpen(true);
   }
 
@@ -62,6 +64,7 @@ export default function GroupsPage() {
     } catch {
       setSelectedPerms([]);
     }
+    setCreateTeamInChatwoot(false);
     setIsModalOpen(true);
   }
 
@@ -80,6 +83,7 @@ export default function GroupsPage() {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("permissions", JSON.stringify(selectedPerms));
+    formData.append("createTeamInChatwoot", createTeamInChatwoot ? "true" : "false");
 
     let res;
     if (editingGroup) {
@@ -258,6 +262,27 @@ export default function GroupsPage() {
                     Grupos com a palavra "Administrador" darão acesso total também no Chatwoot.
                   </p>
                 </div>
+
+                {!editingGroup && (
+                  <div>
+                    <label className="flex items-center p-3 border border-indigo-100 bg-indigo-50/50 rounded-lg cursor-pointer transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={createTeamInChatwoot}
+                        onChange={(e) => setCreateTeamInChatwoot(e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <div className="ml-3">
+                        <span className="text-sm text-indigo-900 font-medium select-none block">
+                          Criar equipe no Chatwoot
+                        </span>
+                        <span className="text-xs text-indigo-700/70 select-none">
+                          Cria automaticamente uma equipe no Chatwoot com este mesmo nome.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
