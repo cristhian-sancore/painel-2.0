@@ -7,8 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3000"
-    env_file:
-      - .env
+
     environment:
       - NODE_ENV=production
       - EVOLUTION_API_KEY=sancore_evolution_master_key_123
