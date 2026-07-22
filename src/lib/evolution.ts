@@ -13,8 +13,8 @@ export class EvolutionClient {
     const urlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } });
     const keySetting = await prisma.setting.findUnique({ where: { key: "evolution_key" } });
     
-    client.url = urlSetting?.value || process.env.EVOLUTION_API_URL || "";
-    client.apiKey = keySetting?.value || process.env.EVOLUTION_API_KEY || "";
+    client.url = process.env.EVOLUTION_API_URL || urlSetting?.value || "";
+    client.apiKey = process.env.EVOLUTION_API_KEY || keySetting?.value || "";
     
     if (!client.url || !client.apiKey) {
       throw new Error("As configurações da API Evolution não foram definidas no painel. Vá em Configurações Globais.");

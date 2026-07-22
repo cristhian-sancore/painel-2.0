@@ -13,8 +13,8 @@ export class ChatwootClient {
     const urlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const tokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
     
-    client.url = urlSetting?.value || process.env.CHATWOOT_API_URL || "";
-    client.accessToken = tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
+    client.url = process.env.CHATWOOT_API_URL || urlSetting?.value || "";
+    client.accessToken = process.env.CHATWOOT_ACCESS_TOKEN || tokenSetting?.value || "";
     
     if (!client.url || !client.accessToken) {
       throw new Error("As configurações do Chatwoot não foram definidas no painel. Vá em Configurações Globais.");
@@ -40,6 +40,7 @@ export class ChatwootClient {
 
   // 1. Get Accounts to find the Account ID
   public async getAccounts() {
+    console.log(`[CHATWOOT DEBUG] URL: ${this.url} | Token Length: ${this.accessToken.length} | Token Starts With: ${this.accessToken.substring(0, 4)}`);
     const res = await fetch(`${this.url}/api/v1/profile`, {
       headers: this.headers,
     });
