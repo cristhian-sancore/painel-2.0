@@ -66,9 +66,8 @@ export async function createUserAction(formData: FormData) {
 
     // 2. Integration with Chatwoot via Platform API
     const platformTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_platform_token" } });
-    const evoUrlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } }); // Use chatwoot url if available
-    // We assume chatwoot url is https://chatwoot2.cristhiansancore.com.br
-    const chatwootUrl = "https://chatwoot2.cristhiansancore.com.br"; // Harcoded for now based on previous context, ideally should come from setting
+    const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
+    const chatwootUrl = chatwootUrlSetting?.value || "https://chatwoot2.cristhiansancore.com.br";
 
     if (platformTokenSetting && platformTokenSetting.value) {
       const platformToken = platformTokenSetting.value;
@@ -225,7 +224,8 @@ export async function updateUserAction(id: string, formData: FormData) {
         
         // Find user by email in Chatwoot to get their ID
         const platformTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_platform_token" } });
-        const chatwootUrl = "https://chatwoot2.cristhiansancore.com.br"; // Harcoded for now based on previous context
+        const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
+        const chatwootUrl = chatwootUrlSetting?.value || "https://chatwoot2.cristhiansancore.com.br";
         
         if (platformTokenSetting && platformTokenSetting.value) {
           const platformToken = platformTokenSetting.value;

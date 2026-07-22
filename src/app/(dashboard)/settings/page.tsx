@@ -8,11 +8,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Record<string, string>>({
     evolution_url: "",
     evolution_key: "",
     chatwoot_url: "",
     chatwoot_token: "",
+    chatwoot_platform_token: "",
     glpi_url: "",
     glpi_token: "",
     proxmox_url: "",
@@ -147,13 +148,24 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Access Token (Admin)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Access Token (Seu Usuário)</label>
               <input
                 type="password"
                 name="chatwoot_token"
                 value={settings.chatwoot_token}
                 onChange={handleChange}
                 placeholder="WGMzdQwPraor579LG7o9NRcm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Platform Token (Obrigatório para criar usuários)</label>
+              <input
+                type="password"
+                name="chatwoot_platform_token"
+                value={settings.chatwoot_platform_token || ""}
+                onChange={handleChange}
+                placeholder="Token de Plataforma do Chatwoot"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
