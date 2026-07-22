@@ -102,7 +102,9 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   const [zoomScale, setZoomScale] = useState(1);
   const [openMenuMsgId, setOpenMenuMsgId] = useState<number | null>(null);
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLength = useRef(0);
 
   useEffect(() => {
     fetchConversations();
@@ -112,6 +114,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
 
   useEffect(() => {
     if (activeConvId) {
+      prevMessagesLength.current = 0; // reset scroll tracking on chat change
       fetchMessages(activeConvId);
       const interval = setInterval(() => fetchMessages(activeConvId), 3000);
       return () => clearInterval(interval);
@@ -121,7 +124,22 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   }, [activeConvId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Check if scrolled near bottom
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    
+    // Auto scroll down if it's the first load, or if new messages arrived and user is at bottom
+    if (messages.length > prevMessagesLength.current) {
+      if (isAtBottom || prevMessagesLength.current === 0) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    } else if (messages.length > 0 && prevMessagesLength.current === 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }
+
+    prevMessagesLength.current = messages.length;
   }, [messages]);
 
   async function fetchConversations() {
@@ -163,6 +181,11 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       content_attributes: replyId ? { in_reply_to: replyId } : {}
     };
     setMessages(prev => [...prev, optimisticMsg]);
+    
+    // Force scroll to bottom on user send
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
 
     try {
       const success = await sendMessageAction(url, token, activeConvId, msgToSend, replyId);
@@ -316,7 +339,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
               </div>
 
               {/* Messages */}
-              <div className="flex-1 p-6 overflow-y-auto space-y-4">
+              <div className="flex-1 p-6 overflow-y-auto space-y-4" ref={messagesContainerRef}>
                 {messages.map((msg) => {
                   const isOutgoing = msg.message_type === 1;
                   const isActivity = msg.message_type === 3 || msg.message_type === 2;
