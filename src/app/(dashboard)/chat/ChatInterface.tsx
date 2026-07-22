@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare } from "lucide-react";
 
+import { fetchConversationsAction, fetchMessagesAction, sendMessageAction } from "./actions";
+
 export default function ChatInterface({ token, url }: { token: string, url: string }) {
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
@@ -36,13 +38,8 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
 
   async function fetchConversations() {
     try {
-      const res = await fetch(`${url}/api/v1/accounts/1/conversations`, {
-        headers: { "api_access_token": token }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data.data.payload || []);
-      }
+      const data = await fetchConversationsAction(url, token);
+      setConversations(data);
     } catch (err) {
       console.error("Error fetching conversations:", err);
     } finally {
@@ -52,15 +49,8 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
 
   async function fetchMessages(conversationId: number) {
     try {
-      const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/messages`, {
-        headers: { "api_access_token": token }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Messages come sorted or we can sort them by created_at
-        const msgs = (data.payload || []).sort((a: any, b: any) => a.created_at - b.created_at);
-        setMessages(msgs);
-      }
+      const msgs = await fetchMessagesAction(url, token, conversationId);
+      setMessages(msgs);
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
@@ -84,18 +74,8 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
     setMessages(prev => [...prev, optimisticMsg]);
 
     try {
-      const res = await fetch(`${url}/api/v1/accounts/1/conversations/${activeConvId}/messages`, {
-        method: "POST",
-        headers: { 
-          "api_access_token": token,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          content: msgToSend,
-          private: false
-        })
-      });
-      if (!res.ok) {
+      const success = await sendMessageAction(url, token, activeConvId, msgToSend);
+      if (!success) {
         throw new Error("Failed to send");
       }
       // Re-fetch immediately
