@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcrypt";
-import fetch from "node-fetch";
+
 
 export async function fetchUsersAction() {
   try {
