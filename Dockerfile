@@ -21,6 +21,7 @@ COPY . .
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 
+RUN npx prisma generate
 RUN npx prisma db push
 RUN npm run build
 
