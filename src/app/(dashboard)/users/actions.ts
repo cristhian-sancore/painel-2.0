@@ -143,3 +143,64 @@ export async function deleteUserAction(id: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function updateUserAction(id: string, formData: FormData) {
+  try {
+    const name = formData.get("name") as string;
+    const cpf = formData.get("cpf") as string;
+    const birthDateStr = formData.get("birthDate") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const accessGroupId = formData.get("accessGroupId") as string;
+    
+    if (!name || !email) {
+      return { success: false, error: "Nome e Email são obrigatórios." };
+    }
+
+    const birthDate = birthDateStr ? new Date(birthDateStr) : null;
+
+    // Check if another user has this email
+    const existingUser = await prisma.user.findFirst({
+      where: { 
+        email,
+        id: { not: id }
+      }
+    });
+
+    if (existingUser) {
+      return { success: false, error: "E-mail já está em uso por outro usuário." };
+    }
+
+    const dataToUpdate: any = {
+      name,
+      cpf,
+      birthDate,
+      email,
+      accessGroupId: accessGroupId || null
+    };
+
+    // If a new password is provided, hash it
+    if (password && password.trim() !== "") {
+      dataToUpdate.password = await bcrypt.hash(password, 10);
+    }
+
+    // 1. Update User in Panel Database
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: dataToUpdate,
+      include: {
+        accessGroup: true
+      }
+    });
+
+    // We skip Chatwoot sync for now on update unless requested, 
+    // as updating emails/passwords in Chatwoot via Platform API has specific quirks.
+
+    revalidatePath("/users");
+    return { success: true, message: "Usuário atualizado com sucesso!" };
+  } catch (error: any) {
+    console.error("updateUserAction error:", error);
+    if (error.code === 'P2002') return { success: false, error: "CPF ou E-mail já cadastrado." };
+    return { success: false, error: error.message };
+  }
+}

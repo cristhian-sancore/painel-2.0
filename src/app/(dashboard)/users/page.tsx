@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchUsersAction, createUserAction, deleteUserAction } from "./actions";
+import { fetchUsersAction, createUserAction, deleteUserAction, updateUserAction } from "./actions";
 import { fetchGroupsAction } from "../groups/actions";
-import { Users, Plus, CheckCircle2, AlertCircle, Trash2, RefreshCw, X, Shield } from "lucide-react";
+import { Users, Plus, CheckCircle2, AlertCircle, Trash2, RefreshCw, X, Shield, Edit } from "lucide-react";
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false);
@@ -14,6 +14,15 @@ export default function UsersPage() {
   const [groups, setGroups] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+
+  // Form State
+  const [name, setName] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [accessGroupId, setAccessGroupId] = useState("");
 
   useEffect(() => {
     loadData();
@@ -38,30 +47,81 @@ export default function UsersPage() {
     setLoadingData(false);
   }
 
-  async function handleSubmit(formData: FormData) {
+  function openNewModal() {
+    setError(null);
+    setSuccessMsg(null);
+    setEditingUser(null);
+    
+    setName("");
+    setCpf("");
+    setBirthDate("");
+    setEmail("");
+    setPassword("");
+    setAccessGroupId("");
+    
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(user: any) {
+    setError(null);
+    setSuccessMsg(null);
+    setEditingUser(user);
+    
+    setName(user.name || "");
+    setCpf(user.cpf || "");
+    
+    // Format date for date input (YYYY-MM-DD)
+    let formattedDate = "";
+    if (user.birthDate) {
+      formattedDate = new Date(user.birthDate).toISOString().split('T')[0];
+    }
+    setBirthDate(formattedDate);
+    
+    setEmail(user.email || "");
+    setPassword(""); // Leave password blank on edit
+    setAccessGroupId(user.accessGroupId || "");
+    
+    setIsModalOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
 
-    const res = await createUserAction(formData);
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("cpf", cpf);
+    formData.append("birthDate", birthDate);
+    formData.append("email", email);
+    formData.append("password", password);
+    formData.append("accessGroupId", accessGroupId);
+
+    let res;
+    if (editingUser) {
+      res = await updateUserAction(editingUser.id, formData);
+    } else {
+      res = await createUserAction(formData);
+    }
 
     if (res.error) {
       setError(res.error);
     } else if (res.success) {
-      setSuccessMsg(res.message || "Usuário criado com sucesso!");
+      setSuccessMsg(res.message || (editingUser ? "Usuário atualizado com sucesso!" : "Usuário criado com sucesso!"));
       setIsModalOpen(false);
       loadData();
     }
     setLoading(false);
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${name}"? Esta ação removerá o acesso ao painel, mas não excluirá do Chatwoot automaticamente.`)) return;
+  async function handleDelete(id: string, userName: string) {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${userName}"? Esta ação removerá o acesso ao painel, mas não excluirá do Chatwoot automaticamente.`)) return;
     
     setLoadingData(true);
     const res = await deleteUserAction(id);
     if (res.success) {
-      setSuccessMsg(`Usuário ${name} excluído com sucesso!`);
+      setSuccessMsg(`Usuário ${userName} excluído com sucesso!`);
       loadData();
     } else {
       setError(res.error || "Erro ao excluir usuário.");
@@ -82,11 +142,7 @@ export default function UsersPage() {
           </div>
         </div>
         <button
-          onClick={() => {
-            setError(null);
-            setSuccessMsg(null);
-            setIsModalOpen(true);
-          }}
+          onClick={openNewModal}
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -150,13 +206,22 @@ export default function UsersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => handleDelete(user.id, user.name || user.email)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
-                      title="Excluir Usuário"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => openEditModal(user)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar Usuário"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(user.id, user.name || user.email)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir Usuário"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -177,8 +242,11 @@ export default function UsersPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8 animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-500" />
-                Cadastrar Novo Usuário
+                {editingUser ? (
+                  <><Edit className="w-5 h-5 text-blue-500" /> Editar Usuário</>
+                ) : (
+                  <><Plus className="w-5 h-5 text-blue-500" /> Cadastrar Novo Usuário</>
+                )}
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
@@ -186,22 +254,46 @@ export default function UsersPage() {
             </div>
 
             <div className="p-6">
-              <form action={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
-                    <input type="text" id="name" name="name" required placeholder="Ex: João da Silva" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
+                    <input 
+                      type="text" 
+                      id="name" 
+                      name="name" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required 
+                      placeholder="Ex: João da Silva" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                    />
                   </div>
 
                   <div>
                     <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                    <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
+                    <input 
+                      type="text" 
+                      id="cpf" 
+                      name="cpf" 
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value)}
+                      placeholder="000.000.000-00" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                    />
                   </div>
 
                   <div>
                     <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
-                    <input type="date" id="birthDate" name="birthDate" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
+                    <input 
+                      type="date" 
+                      id="birthDate" 
+                      name="birthDate" 
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                    />
                   </div>
 
                   <div className="md:col-span-2">
@@ -210,12 +302,33 @@ export default function UsersPage() {
 
                   <div className="md:col-span-2">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">E-mail (Login) *</label>
-                    <input type="email" id="email" name="email" required placeholder="joao@empresa.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
+                    <input 
+                      type="email" 
+                      id="email" 
+                      name="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required 
+                      placeholder="joao@empresa.com" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                    />
                   </div>
 
                   <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Senha de Acesso *</label>
-                    <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" minLength={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                      {editingUser ? "Nova Senha" : "Senha de Acesso *"}
+                    </label>
+                    <input 
+                      type="password" 
+                      id="password" 
+                      name="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required={!editingUser} 
+                      placeholder={editingUser ? "Deixe em branco para manter a atual" : "Mínimo 6 caracteres"} 
+                      minLength={6} 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                    />
                   </div>
 
                   <div>
@@ -224,7 +337,14 @@ export default function UsersPage() {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Shield className="h-4 w-4 text-gray-400" />
                       </div>
-                      <select id="accessGroupId" name="accessGroupId" required className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none bg-white text-gray-900">
+                      <select 
+                        id="accessGroupId" 
+                        name="accessGroupId" 
+                        value={accessGroupId}
+                        onChange={(e) => setAccessGroupId(e.target.value)}
+                        required 
+                        className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none bg-white text-gray-900"
+                      >
                         <option value="" className="text-gray-900">Selecione um grupo...</option>
                         {groups.map(g => (
                           <option key={g.id} value={g.id} className="text-gray-900">{g.name}</option>
@@ -234,12 +354,23 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex gap-3 text-blue-800 text-sm">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-blue-600" />
-                  <p>
-                    <strong>Integração Chatwoot:</strong> Ao salvar, este usuário será criado automaticamente no Chatwoot com a senha e e-mail informados, pronto para atender.
-                  </p>
-                </div>
+                {!editingUser && (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex gap-3 text-blue-800 text-sm">
+                    <AlertCircle className="w-5 h-5 shrink-0 text-blue-600" />
+                    <p>
+                      <strong>Integração Chatwoot:</strong> Ao salvar, este usuário será criado automaticamente no Chatwoot com a senha e e-mail informados, pronto para atender.
+                    </p>
+                  </div>
+                )}
+                
+                {editingUser && (
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 flex gap-3 text-amber-800 text-sm mt-4">
+                    <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                    <p>
+                      <strong>Aviso:</strong> A alteração de email/senha ou grupo por aqui no momento afeta apenas o acesso ao painel principal.
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <div className="p-3 bg-red-50 text-red-700 rounded-lg flex items-start gap-2 border border-red-100">
@@ -253,7 +384,7 @@ export default function UsersPage() {
                     Cancelar
                   </button>
                   <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50">
-                    {loading ? "Processando..." : "Salvar Usuário"}
+                    {loading ? "Processando..." : (editingUser ? "Salvar Alterações" : "Salvar Usuário")}
                   </button>
                 </div>
               </form>
