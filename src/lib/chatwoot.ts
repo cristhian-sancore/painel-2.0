@@ -172,7 +172,30 @@ export class ChatwootClient {
     return await res.json();
   }
 
-  // 8. Delete Inbox
+  // 8. Create API Inbox
+  public async createApiInbox(name: string, webhookUrl: string) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/inboxes`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        name: name,
+        channel: {
+          type: "api",
+          webhook_url: webhookUrl
+        }
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to create api inbox: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 9. Delete Inbox
   public async deleteInbox(inboxId: number) {
     await this.setAccountId();
     

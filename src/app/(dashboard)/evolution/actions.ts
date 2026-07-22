@@ -2,6 +2,7 @@
 
 import { EvolutionClient } from "@/lib/evolution";
 import { ChatwootClient } from "@/lib/chatwoot";
+import { prisma } from "@/lib/prisma";
 
 export async function createWhatsAppInstance(formData: FormData) {
   const instanceName = formData.get("instanceName") as string;
@@ -26,31 +27,52 @@ export async function createWhatsAppInstance(formData: FormData) {
     // 3. Connect the Instance to Chatwoot
     await evo.connectToChatwoot(generatedName, accountId);
 
-    // 4. Se um time foi selecionado, atribuir à Inbox recém-criada
-    if (teamId && teamId !== "") {
-      try {
-        // Pausa breve para dar tempo do webhook/Evolution criar a inbox
-        await new Promise(r => setTimeout(r, 1500));
+    // 4. Atribuir à Inbox recém-criada (ou criar fallback se não existir)
+    try {
+      // Pausa breve para dar tempo do webhook/Evolution criar a inbox
+      await new Promise(r => setTimeout(r, 1500));
+      
+      const inboxesResponse = await chatwoot.getInboxes();
+      const inboxes = inboxesResponse.payload || inboxesResponse;
+      
+      // Procura a inbox criada (Evolution usa 'WhatsApp - ' + nome)
+      let targetInbox = inboxes.find((i: any) => i.name === `WhatsApp - ${generatedName}`);
+      
+      // Fallback: Se a Evolution não criou a inbox, criamos manualmente
+      if (!targetInbox) {
+        const evolutionUrlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } });
+        let evolutionUrl = evolutionUrlSetting?.value || process.env.EVOLUTION_API_URL || "http://localhost:8081";
+        if (evolutionUrl.endsWith('/')) evolutionUrl = evolutionUrl.slice(0, -1);
         
-        const inboxesResponse = await chatwoot.getInboxes();
-        const inboxes = inboxesResponse.payload || inboxesResponse;
-        
-        // Procura a inbox criada (Evolution usa 'WhatsApp - ' + nome)
-        const targetInbox = inboxes.find((i: any) => i.name === `WhatsApp - ${generatedName}`);
-        
-        if (targetInbox) {
+        const webhookUrl = `${evolutionUrl}/chatwoot/webhook/${generatedName}`;
+        const newInbox = await chatwoot.createApiInbox(`WhatsApp - ${generatedName}`, webhookUrl);
+        targetInbox = newInbox;
+      }
+
+      if (targetInbox) {
+        let userIds: number[] = [];
+
+        if (teamId && teamId !== "") {
           const membersResponse = await chatwoot.getTeamMembers(Number(teamId));
           const members = membersResponse.payload || membersResponse;
-          const userIds = members.map((m: any) => m.id || m.user_id);
-          
-          if (userIds.length > 0) {
-            await chatwoot.assignMembersToInbox(targetInbox.id, userIds);
-          }
+          userIds = members.map((m: any) => m.id || m.user_id);
         }
-      } catch (e) {
-        console.error("Erro ao atribuir time à inbox:", e);
-        // Não falha a criação da instância se falhar apenas a atribuição de time
+
+        // Busca agentes e adiciona pelo menos 1 administrador para a caixa não ficar invisível
+        const agentsRes = await chatwoot.getAgents();
+        const agents = agentsRes.payload || agentsRes;
+        const admin = agents.find((a: any) => a.role === "administrator");
+        if (admin && !userIds.includes(admin.id)) {
+          userIds.push(admin.id);
+        }
+
+        if (userIds.length > 0) {
+          await chatwoot.assignMembersToInbox(targetInbox.id, userIds);
+        }
       }
+    } catch (e) {
+      console.error("Erro ao atribuir time à inbox ou criar inbox fallback:", e);
+      // Não falha a criação da instância se falhar apenas a atribuição/criação da inbox
     }
 
     return { 

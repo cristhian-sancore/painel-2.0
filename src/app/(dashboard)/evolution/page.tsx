@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createWhatsAppInstance, fetchInstancesAction, deleteInstanceAction, getQrCodeAction, fetchTeamsAction } from "./actions";
-import { QrCode, Smartphone, Plus, CheckCircle2, AlertCircle, Trash2, RefreshCw, Users, Server } from "lucide-react";
+import { QrCode, Smartphone, Plus, CheckCircle2, AlertCircle, Trash2, RefreshCw, Users, Server, X } from "lucide-react";
 
 export default function EvolutionPage() {
   const [loading, setLoading] = useState(false);
@@ -13,6 +13,10 @@ export default function EvolutionPage() {
   const [instances, setInstances] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Modals state
+  const [isNewInstanceModalOpen, setIsNewInstanceModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -50,7 +54,11 @@ export default function EvolutionPage() {
       setError(res.error);
     } else if (res.success) {
       setSuccessMsg(res.message!);
-      setQrCode(res.qrCode || null);
+      if (res.qrCode) {
+        setQrCode(res.qrCode);
+        setIsQrModalOpen(true);
+      }
+      setIsNewInstanceModalOpen(false);
       loadData(); // recarrega a lista
     }
     
@@ -75,6 +83,7 @@ export default function EvolutionPage() {
     setQrCode(null);
     setError(null);
     setSuccessMsg(`Buscando QR Code para ${instanceName}...`);
+    setIsQrModalOpen(true);
     
     const res = await getQrCodeAction(instanceName);
     if (res.success && res.base64) {
@@ -86,113 +95,55 @@ export default function EvolutionPage() {
     }
   }
 
+  function closeModals() {
+    setIsNewInstanceModalOpen(false);
+    setIsQrModalOpen(false);
+    setError(null);
+    setSuccessMsg(null);
+    setQrCode(null);
+  }
+
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-          <Smartphone className="w-6 h-6" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
+            <Smartphone className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">WhatsApp Evolution</h1>
+            <p className="text-gray-500 text-sm">Conecte novos números e gerencie suas instâncias integradas ao Chatwoot.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">WhatsApp Evolution</h1>
-          <p className="text-gray-500 text-sm">Conecte novos números e gerencie suas instâncias integradas ao Chatwoot.</p>
-        </div>
+        <button
+          onClick={() => {
+            setError(null);
+            setSuccessMsg(null);
+            setIsNewInstanceModalOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Nova Instância
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Formulário */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-blue-500" />
-            Nova Instância
-          </h2>
-
-          <form action={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="instanceName" className="block text-sm font-medium text-gray-700 mb-1">
-                Nome do Número/Setor
-              </label>
-              <input 
-                type="text" 
-                id="instanceName" 
-                name="instanceName" 
-                required
-                placeholder="Ex: Suporte Financeiro"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
-              <p className="text-xs text-gray-400 mt-1">Este nome será usado para criar a Caixa de Entrada no Chatwoot.</p>
-            </div>
-
-            <div>
-              <label htmlFor="teamId" className="block text-sm font-medium text-gray-700 mb-1">
-                Atribuir a uma Equipe (Opcional)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Users className="h-4 w-4 text-gray-400" />
-                </div>
-                <select 
-                  id="teamId" 
-                  name="teamId" 
-                  className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
-                >
-                  <option value="">-- Nenhuma Equipe --</option>
-                  {teams.map(team => (
-                    <option key={team.id} value={team.id}>{team.name}</option>
-                  ))}
-                </select>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Os membros desta equipe terão acesso imediato à nova caixa no Chatwoot.</p>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-            >
-              {loading ? (
-                <span className="animate-pulse">Criando e Conectando...</span>
-              ) : (
-                "Gerar QR Code"
-              )}
-            </button>
-          </form>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3 border border-red-100">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="mt-4 p-4 bg-green-50 text-green-700 rounded-lg flex items-start gap-3 border border-green-100">
-              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-              <p className="text-sm">{successMsg}</p>
-            </div>
-          )}
+      {error && !isNewInstanceModalOpen && !isQrModalOpen && (
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3 border border-red-100">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm">{error}</p>
         </div>
+      )}
 
-        {/* QR Code Area */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-          {qrCode ? (
-            <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Leia o QR Code</h3>
-              <p className="text-sm text-gray-500">Abra o WhatsApp no seu celular, vá em "Aparelhos Conectados" e aponte a câmera.</p>
-              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm inline-block">
-                <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64 object-contain" />
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-400 max-w-xs">
-              <QrCode className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">Preencha o formulário ou selecione uma instância abaixo para visualizar o QR Code.</p>
-            </div>
-          )}
+      {successMsg && !isNewInstanceModalOpen && !isQrModalOpen && (
+        <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg flex items-start gap-3 border border-green-100">
+          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm">{successMsg}</p>
         </div>
-      </div>
+      )}
 
       {/* Instâncias List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-8">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Server className="w-5 h-5 text-purple-500" />
@@ -221,12 +172,16 @@ export default function EvolutionPage() {
             <tbody className="divide-y divide-gray-50">
               {instances.map((inst, index) => {
                 const instance = inst.instance || inst;
-                const isOnline = instance.status === "open";
-                const isConnecting = instance.status === "connecting";
+                const instanceName = instance.name || instance.instanceName || "";
+                const connectionStatus = instance.connectionStatus || instance.status;
+                const isOnline = connectionStatus === "open";
+                const isConnecting = connectionStatus === "connecting";
+                
+                if (!instanceName) return null; // Prevenção extra
                 
                 return (
                   <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{instance.instanceName}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{instanceName}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : isConnecting ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
@@ -242,7 +197,7 @@ export default function EvolutionPage() {
                       <div className="flex justify-end gap-2">
                         {!isOnline && (
                           <button 
-                            onClick={() => handleShowQr(instance.instanceName)}
+                            onClick={() => handleShowQr(instanceName)}
                             className="px-3 py-1.5 text-sm bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1.5"
                           >
                             <QrCode className="w-4 h-4" />
@@ -250,7 +205,7 @@ export default function EvolutionPage() {
                           </button>
                         )}
                         <button 
-                          onClick={() => handleDelete(instance.instanceName)}
+                          onClick={() => handleDelete(instanceName)}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Excluir Instância"
                         >
@@ -272,6 +227,119 @@ export default function EvolutionPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal Nova Instância */}
+      {isNewInstanceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-blue-500" />
+                Nova Instância
+              </h2>
+              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <form action={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="instanceName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Número/Setor
+                  </label>
+                  <input 
+                    type="text" 
+                    id="instanceName" 
+                    name="instanceName" 
+                    required
+                    placeholder="Ex: Suporte Financeiro"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Este nome será usado para criar a Caixa de Entrada no Chatwoot.</p>
+                </div>
+
+                <div>
+                  <label htmlFor="teamId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Atribuir a uma Equipe (Opcional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Users className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <select 
+                      id="teamId" 
+                      name="teamId" 
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
+                    >
+                      <option value="">-- Nenhuma Equipe --</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Os membros desta equipe terão acesso imediato à nova caixa no Chatwoot.</p>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-lg flex items-start gap-2 border border-red-100 mt-4">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p className="text-xs">{error}</p>
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <span className="animate-pulse">Criando e Conectando...</span>
+                    ) : (
+                      "Gerar QR Code"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR Code */}
+      {isQrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100">
+              <h3 className="font-medium text-gray-900">Leia o QR Code</h3>
+              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col items-center justify-center text-center">
+              {qrCode ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">Abra o WhatsApp no seu celular, vá em "Aparelhos Conectados" e aponte a câmera.</p>
+                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm inline-block">
+                    <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64 object-contain" />
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="text-red-500 flex flex-col items-center">
+                  <AlertCircle className="w-12 h-12 mb-2 opacity-50" />
+                  <p className="text-sm">{error}</p>
+                </div>
+              ) : (
+                <div className="text-gray-400 flex flex-col items-center">
+                  <RefreshCw className="w-12 h-12 mb-2 animate-spin text-blue-500" />
+                  <p className="text-sm">{successMsg || "Carregando QR Code..."}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
