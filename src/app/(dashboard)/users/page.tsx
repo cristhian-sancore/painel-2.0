@@ -191,17 +191,17 @@ export default function UsersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
-                    <input type="text" id="name" name="name" required placeholder="Ex: João da Silva" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="text" id="name" name="name" required placeholder="Ex: João da Silva" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
                   </div>
 
                   <div>
                     <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                    <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
                   </div>
 
                   <div>
                     <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
-                    <input type="date" id="birthDate" name="birthDate" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="date" id="birthDate" name="birthDate" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
                   </div>
 
                   <div className="md:col-span-2">
@@ -210,12 +210,12 @@ export default function UsersPage() {
 
                   <div className="md:col-span-2">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">E-mail (Login) *</label>
-                    <input type="email" id="email" name="email" required placeholder="joao@empresa.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="email" id="email" name="email" required placeholder="joao@empresa.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
                   </div>
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Senha de Acesso *</label>
-                    <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" minLength={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" minLength={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900" />
                   </div>
 
                   <div>
@@ -224,10 +224,10 @@ export default function UsersPage() {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Shield className="h-4 w-4 text-gray-400" />
                       </div>
-                      <select id="accessGroupId" name="accessGroupId" required className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none bg-white">
-                        <option value="">Selecione um grupo...</option>
+                      <select id="accessGroupId" name="accessGroupId" required className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none bg-white text-gray-900">
+                        <option value="" className="text-gray-900">Selecione um grupo...</option>
                         {groups.map(g => (
-                          <option key={g.id} value={g.id}>{g.name}</option>
+                          <option key={g.id} value={g.id} className="text-gray-900">{g.name}</option>
                         ))}
                       </select>
                     </div>
