@@ -5,7 +5,7 @@ import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check
 
 import { fetchConversationsAction, fetchMessagesAction, sendMessageAction } from "./actions";
 
-export default function ChatInterface({ token, url }: { token: string, url: string }) {
+export default function ChatInterface({ token, url, publicUrl }: { token: string, url: string, publicUrl: string }) {
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -49,7 +49,7 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
 
   async function fetchMessages(conversationId: number) {
     try {
-      const msgs = await fetchMessagesAction(url, token, conversationId);
+      const msgs = await fetchMessagesAction(url, publicUrl, token, conversationId);
       setMessages(msgs);
     } catch (err) {
       console.error("Error fetching messages:", err);

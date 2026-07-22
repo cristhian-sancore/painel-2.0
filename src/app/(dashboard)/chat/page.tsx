@@ -80,6 +80,8 @@ export default async function ChatPage() {
   if (!chatwootUrl.startsWith("http")) {
     chatwootUrl = "https://" + chatwootUrl;
   }
+  
+  const publicChatwootUrl = "https://chatwoot2.cristhiansancore.com.br";
 
-  return <ChatInterface token={user.chatwootAccessToken} url={chatwootUrl} />;
+  return <ChatInterface token={user.chatwootAccessToken} url={chatwootUrl} publicUrl={publicChatwootUrl} />;
 }

@@ -15,15 +15,34 @@ export async function fetchConversationsAction(url: string, token: string) {
   }
 }
 
-export async function fetchMessagesAction(url: string, token: string, conversationId: number) {
+export async function fetchMessagesAction(apiUrl: string, publicUrl: string, token: string, conversationId: number) {
   try {
-    const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/messages`, {
+    const res = await fetch(`${apiUrl}/api/v1/accounts/1/conversations/${conversationId}/messages`, {
       headers: { "api_access_token": token },
       cache: 'no-store'
     });
     if (!res.ok) throw new Error("Failed to fetch messages");
     const data = await res.json();
-    return (data.payload || []).sort((a: any, b: any) => a.created_at - b.created_at);
+    
+    let msgs = data.payload || [];
+    
+    // Fix URLs in attachments from internal IP to public domain
+    msgs = msgs.map((msg: any) => {
+      if (msg.attachments) {
+        msg.attachments = msg.attachments.map((att: any) => {
+          if (att.data_url && att.data_url.includes(apiUrl)) {
+            att.data_url = att.data_url.replace(apiUrl, publicUrl);
+          }
+          if (att.thumb_url && att.thumb_url.includes(apiUrl)) {
+            att.thumb_url = att.thumb_url.replace(apiUrl, publicUrl);
+          }
+          return att;
+        });
+      }
+      return msg;
+    });
+
+    return msgs.sort((a: any, b: any) => a.created_at - b.created_at);
   } catch (error) {
     console.error(error);
     return [];
