@@ -50,6 +50,13 @@ export async function createWhatsAppInstance(formData: FormData) {
       }
 
       if (targetInbox) {
+        // Atualiza as configurações da Inbox recém-criada para forçar "Reabrir a mesma conversa"
+        try {
+          await chatwoot.updateInboxSettings(targetInbox.id, { lock_to_single_conversation: true });
+        } catch (updateErr) {
+          console.error("Erro ao configurar lock_to_single_conversation:", updateErr);
+        }
+
         let userIds: number[] = [];
 
         if (teamId && teamId !== "") {

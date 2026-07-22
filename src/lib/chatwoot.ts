@@ -211,6 +211,23 @@ export class ChatwootClient {
     return true;
   }
 
+  // 9b. Update Inbox Settings
+  public async updateInboxSettings(inboxId: number, settings: any) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/inboxes/${inboxId}`, {
+      method: "PATCH",
+      headers: this.headers,
+      body: JSON.stringify(settings),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to update inbox settings: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
   // 10. Create Team
   public async createTeam(name: string, description: string = "", allowAutoAssign: boolean = true) {
     await this.setAccountId();
