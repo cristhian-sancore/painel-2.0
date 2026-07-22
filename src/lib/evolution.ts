@@ -82,9 +82,9 @@ export class EvolutionClient {
       throw new Error("Credenciais do Chatwoot ausentes. Vá em Configurações Globais para configurar.");
     }
 
-    if (!chatwootUrl.startsWith("http")) {
-      chatwootUrl = "https://" + chatwootUrl;
-    }
+    // ALWAYS use the internal docker network URL for Evolution API to talk to Chatwoot
+    // This bypasses Cloudflare/DNS EAI_AGAIN errors that occur in Docker bridge networks
+    const internalChatwootUrl = "http://chatwoot-evolution-chatwoot-1:3000";
 
     const res = await fetch(`${this.url}/chatwoot/set/${instanceName}`, {
       method: "POST",
@@ -93,7 +93,7 @@ export class EvolutionClient {
         enabled: true,
         accountId: String(accountId),
         token: chatwootToken,
-        url: chatwootUrl,
+        url: internalChatwootUrl,
         signMsg: true,
         reopenConversation: true,
         conversationPending: false,
