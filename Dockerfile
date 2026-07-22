@@ -50,10 +50,8 @@ COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 
 RUN chmod +x ./docker-entrypoint.sh
 
-# Give nextjs user write permission to /app so it can create dev.db and data folder
+# Give nextjs user write permission to /app (optional now, but kept for consistency)
 RUN chown -R nextjs:nodejs /app
-
-USER nextjs
 
 EXPOSE 3000
 
