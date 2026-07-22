@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, MessageSquare, Ticket, Server, Globe, HardDrive, Settings, Smartphone } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Ticket, Server, Globe, HardDrive, Settings, Smartphone, Shield, Users } from 'lucide-react';
 
 export default function Sidebar() {
   const menuItems = [
@@ -10,6 +10,8 @@ export default function Sidebar() {
     { name: 'Datacenter', icon: Server, path: '/datacenter' },
     { name: 'DNS (Cloudflare)', icon: Globe, path: '/dns' },
     { name: 'Storage', icon: HardDrive, path: '/storage' },
+    { name: 'Grupos de Acesso', icon: Shield, path: '/groups' },
+    { name: 'Usuários', icon: Users, path: '/users' },
   ];
 
   return (

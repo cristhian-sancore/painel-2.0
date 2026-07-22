@@ -1,0 +1,59 @@
+"use server";
+
+import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export async function fetchGroupsAction() {
+  try {
+    const groups = await prisma.accessGroup.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return { success: true, data: groups };
+  } catch (error: any) {
+    console.error("fetchGroupsAction error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createGroupAction(formData: FormData) {
+  try {
+    const name = formData.get("name") as string;
+    const permissionsStr = formData.get("permissions") as string; // Will come as JSON string or we can parse it
+    
+    if (!name) return { success: false, error: "Nome é obrigatório." };
+
+    const group = await prisma.accessGroup.create({
+      data: {
+        name,
+        permissions: permissionsStr || "[]",
+      },
+    });
+
+    revalidatePath("/groups");
+    return { success: true, data: group };
+  } catch (error: any) {
+    console.error("createGroupAction error:", error);
+    if (error.code === 'P2002') return { success: false, error: "Já existe um grupo com este nome." };
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteGroupAction(id: string) {
+  try {
+    // Check if there are users in this group
+    const usersCount = await prisma.user.count({ where: { accessGroupId: id } });
+    if (usersCount > 0) {
+      return { success: false, error: `Existem ${usersCount} usuários vinculados a este grupo. Remova-os primeiro.` };
+    }
+
+    await prisma.accessGroup.delete({
+      where: { id },
+    });
+
+    revalidatePath("/groups");
+    return { success: true };
+  } catch (error: any) {
+    console.error("deleteGroupAction error:", error);
+    return { success: false, error: error.message };
+  }
+}

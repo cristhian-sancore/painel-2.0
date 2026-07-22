@@ -27,17 +27,19 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        // For simplicity and since we don't have bcrypt yet, 
-        // we are doing a direct match or creating the first user if none exists.
-        // In a real production app, ALWAYS use bcrypt to hash and compare passwords.
-        
         if (!user) {
-          // Setup initial user is now handled by /api/setup
           return null;
         }
 
-        if (user.password !== credentials.password) {
-          return null;
+        // Check password using bcrypt
+        const bcrypt = require('bcrypt');
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        
+        if (!isValid) {
+          // Fallback to plain text comparison to allow logging in during migration
+          if (user.password !== credentials.password) {
+            return null;
+          }
         }
 
         return { id: user.id, name: user.name, email: user.email, role: user.role };

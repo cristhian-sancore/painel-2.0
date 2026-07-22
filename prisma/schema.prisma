@@ -6,14 +6,27 @@ datasource db {
   provider = "sqlite"
 }
 
+model AccessGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  permissions String   @default("[]") // JSON array of permission keys
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
-  role      String   @default("USER") // ADMIN, SUPPORT, USER
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String       @id @default(cuid())
+  name          String?
+  cpf           String?      @unique
+  birthDate     DateTime?
+  email         String       @unique
+  password      String
+  role          String       @default("USER") // Maintaining for legacy
+  accessGroupId String?
+  accessGroup   AccessGroup? @relation(fields: [accessGroupId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model Setting {
