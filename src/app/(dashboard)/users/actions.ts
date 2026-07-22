@@ -110,6 +110,28 @@ export async function createUserAction(formData: FormData) {
            console.error("[Chatwoot Sync] Falha ao vincular usuário à conta:", await linkRes.text());
         } else {
            console.log("[Chatwoot Sync] Usuário vinculado com sucesso à conta 1 como", role);
+           
+           // If user has an accessGroup, try to add them to the corresponding Chatwoot Team
+           if (newUser.accessGroup && newUser.accessGroup.name) {
+             try {
+               const { ChatwootClient } = require("@/lib/chatwoot");
+               const cwClient = await ChatwootClient.init();
+               
+               const teamsRes = await cwClient.getTeams();
+               const teams = Array.isArray(teamsRes) ? teamsRes : (teamsRes.payload || []);
+               
+               const targetTeam = teams.find((t: any) => t.name.toLowerCase() === newUser.accessGroup!.name.toLowerCase());
+               
+               if (targetTeam) {
+                 await cwClient.addTeamMember(targetTeam.id, [cwUser.id]);
+                 console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à equipe ${targetTeam.name}`);
+               } else {
+                 console.log(`[Chatwoot Sync] Nenhuma equipe encontrada no Chatwoot com o nome ${newUser.accessGroup.name}`);
+               }
+             } catch (teamErr) {
+               console.error("[Chatwoot Sync] Erro ao adicionar usuário à equipe:", teamErr);
+             }
+           }
         }
       } else {
         const errText = await chatwootRes.text();
@@ -195,6 +217,42 @@ export async function updateUserAction(id: string, formData: FormData) {
 
     // We skip Chatwoot sync for now on update unless requested, 
     // as updating emails/passwords in Chatwoot via Platform API has specific quirks.
+    // However, if the user was assigned to an accessGroup, we can try to add them to the Chatwoot Team
+    if (updatedUser.accessGroup && updatedUser.accessGroup.name) {
+      try {
+        const { ChatwootClient } = require("@/lib/chatwoot");
+        const cwClient = await ChatwootClient.init();
+        
+        // Find user by email in Chatwoot to get their ID
+        const platformTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_platform_token" } });
+        const chatwootUrl = "https://chatwoot2.cristhiansancore.com.br"; // Harcoded for now based on previous context
+        
+        if (platformTokenSetting && platformTokenSetting.value) {
+          const platformToken = platformTokenSetting.value;
+          const searchRes = await fetch(`${chatwootUrl}/platform/api/v1/users`, {
+            headers: { "api_access_token": platformToken }
+          });
+          
+          if (searchRes.ok) {
+            const usersList = await searchRes.json();
+            const cwUser = usersList.find((u: any) => u.email === updatedUser.email);
+            
+            if (cwUser) {
+              const teamsRes = await cwClient.getTeams();
+              const teams = Array.isArray(teamsRes) ? teamsRes : (teamsRes.payload || []);
+              const targetTeam = teams.find((t: any) => t.name.toLowerCase() === updatedUser.accessGroup!.name.toLowerCase());
+              
+              if (targetTeam) {
+                await cwClient.addTeamMember(targetTeam.id, [cwUser.id]);
+                console.log(`[Chatwoot Sync] Usuário atualizado adicionado com sucesso à equipe ${targetTeam.name}`);
+              }
+            }
+          }
+        }
+      } catch (teamErr) {
+        console.error("[Chatwoot Sync] Erro ao atualizar equipe do usuário:", teamErr);
+      }
+    }
 
     revalidatePath("/users");
     return { success: true, message: "Usuário atualizado com sucesso!" };

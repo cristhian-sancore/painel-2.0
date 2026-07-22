@@ -233,4 +233,25 @@ export class ChatwootClient {
 
     return await res.json();
   }
+
+  // 11. Add Team Member
+  public async addTeamMember(teamId: number, userIds: number[]) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/teams/${teamId}/team_members`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        user_ids: userIds
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Failed to add team member in chatwoot:", errText);
+      throw new Error(`Failed to add team member: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
 }
