@@ -1,14 +1,19 @@
 "use server";
 
-export async function fetchConversationsAction(url: string, token: string) {
+export async function fetchConversationsAction(apiUrl: string, publicUrl: string, token: string) {
   try {
-    const res = await fetch(`${url}/api/v1/accounts/1/conversations?status=all&assignee_type=all`, {
+    const res = await fetch(`${apiUrl}/api/v1/accounts/1/conversations?status=all&assignee_type=all`, {
       headers: { "api_access_token": token },
       cache: 'no-store'
     });
     if (!res.ok) throw new Error("Failed to fetch conversations");
     const data = await res.json();
-    return data.data?.payload || [];
+    
+    // Replace internal IP with public URL globally in the JSON string
+    let jsonString = JSON.stringify(data.data?.payload || []);
+    jsonString = jsonString.split(apiUrl).join(publicUrl);
+    
+    return JSON.parse(jsonString);
   } catch (error) {
     console.error(error);
     return [];
@@ -24,24 +29,11 @@ export async function fetchMessagesAction(apiUrl: string, publicUrl: string, tok
     if (!res.ok) throw new Error("Failed to fetch messages");
     const data = await res.json();
     
-    let msgs = data.payload || [];
+    // Replace internal IP with public URL globally in the JSON string
+    let jsonString = JSON.stringify(data.payload || []);
+    jsonString = jsonString.split(apiUrl).join(publicUrl);
     
-    // Fix URLs in attachments from internal IP to public domain
-    msgs = msgs.map((msg: any) => {
-      if (msg.attachments) {
-        msg.attachments = msg.attachments.map((att: any) => {
-          if (att.data_url && att.data_url.includes(apiUrl)) {
-            att.data_url = att.data_url.replace(apiUrl, publicUrl);
-          }
-          if (att.thumb_url && att.thumb_url.includes(apiUrl)) {
-            att.thumb_url = att.thumb_url.replace(apiUrl, publicUrl);
-          }
-          return att;
-        });
-      }
-      return msg;
-    });
-
+    let msgs = JSON.parse(jsonString);
     return msgs.sort((a: any, b: any) => a.created_at - b.created_at);
   } catch (error) {
     console.error(error);

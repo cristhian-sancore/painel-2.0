@@ -38,7 +38,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
 
   async function fetchConversations() {
     try {
-      const data = await fetchConversationsAction(url, token);
+      const data = await fetchConversationsAction(url, publicUrl, token);
       setConversations(data);
     } catch (err) {
       console.error("Error fetching conversations:", err);
@@ -194,7 +194,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                               return <img key={att.id || idx} src={att.data_url} alt="Anexo" className="max-w-full rounded-md" />;
                             }
                             if (att.file_type === 'audio') {
-                              return <audio key={att.id || idx} controls src={att.data_url} className="w-full max-w-[250px]" />;
+                              return <audio key={att.id || idx} controls src={att.data_url} className="w-[250px] min-w-[200px]" />;
                             }
                             if (att.file_type === 'video') {
                               return <video key={att.id || idx} controls src={att.data_url} className="max-w-full rounded-md" />;
