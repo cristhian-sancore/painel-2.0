@@ -121,12 +121,23 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                   onClick={() => setActiveConvId(conv.id)}
                   className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-blue-50 transition-colors flex gap-3 ${activeConvId === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
                     {sender?.thumbnail ? (
-                      <img src={sender.thumbnail} alt={sender.name} className="w-full h-full rounded-full object-cover" />
-                    ) : (
+                      <img 
+                        src={sender.thumbnail} 
+                        alt={sender.name || "Avatar"} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className="w-full h-full items-center justify-center" style={{ display: sender?.thumbnail ? 'none' : 'flex' }}>
                       <UserIcon className="w-5 h-5" />
-                    )}
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
@@ -150,12 +161,23 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
           <>
             {/* Chat Header */}
             <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center gap-4 shadow-sm z-10">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
                 {activeConv.meta?.sender?.thumbnail ? (
-                  <img src={activeConv.meta.sender.thumbnail} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                ) : (
+                  <img 
+                    src={activeConv.meta.sender.thumbnail} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                <div className="w-full h-full items-center justify-center" style={{ display: activeConv.meta?.sender?.thumbnail ? 'none' : 'flex' }}>
                   <UserIcon className="w-5 h-5" />
-                )}
+                </div>
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">{activeConv.meta?.sender?.name || activeConv.meta?.sender?.phone_number || "Desconhecido"}</h3>
