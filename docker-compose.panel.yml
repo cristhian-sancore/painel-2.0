@@ -11,3 +11,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - EVOLUTION_API_KEY=sancore_evolution_master_key_123
+      - CHATWOOT_API_URL=https://chatwoot2.cristhiansancore.com.br
+      - CHATWOOT_ACCESS_TOKEN=WGMzdQwPraor579LG7o9NRcm
+      - INSTALLATION_KEY=sancore_setup_key_2026

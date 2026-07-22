@@ -32,19 +32,7 @@ export const authOptions: NextAuthOptions = {
         // In a real production app, ALWAYS use bcrypt to hash and compare passwords.
         
         if (!user) {
-          // Check if it's the very first user in the DB
-          const count = await prisma.user.count();
-          if (count === 0) {
-            const newUser = await prisma.user.create({
-              data: {
-                email: credentials.email,
-                password: credentials.password, // SHOULD BE HASHED
-                name: "Administrador",
-                role: "ADMIN"
-              }
-            });
-            return { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role };
-          }
+          // Setup initial user is now handled by /api/setup
           return null;
         }
 

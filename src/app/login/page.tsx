@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Server, Lock, Mail, Loader2 } from "lucide-react";
@@ -11,6 +11,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/setup/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.isSetupRequired) {
+          router.push("/setup");
+        }
+      });
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +121,7 @@ export default function LoginPage() {
             
             <div className="text-center mt-4">
               <p className="text-xs text-slate-500">
-                Primeiro login criará a conta Admin automaticamente.
+                Acesso restrito.
               </p>
             </div>
           </form>
