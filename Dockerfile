@@ -46,8 +46,11 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 
-# Give nextjs user write permission to /app so it can create dev.db
+RUN chmod +x ./docker-entrypoint.sh
+
+# Give nextjs user write permission to /app so it can create dev.db and data folder
 RUN chown -R nextjs:nodejs /app
 
 USER nextjs
@@ -57,4 +60,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["./docker-entrypoint.sh"]
