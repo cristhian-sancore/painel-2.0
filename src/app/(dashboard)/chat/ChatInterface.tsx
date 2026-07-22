@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon } from "lucide-react";
 
 import { fetchConversationsAction, fetchMessagesAction, sendMessageAction } from "./actions";
 
@@ -187,7 +187,28 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
                     <div 
                       className={`max-w-[70%] p-3 rounded-lg shadow-sm relative ${isOutgoing ? 'bg-[#d9fdd3] text-gray-900 rounded-tr-none' : 'bg-white text-gray-900 rounded-tl-none'}`}
                     >
-                      <p className="text-[15px] whitespace-pre-wrap break-words">{msg.content}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mb-1 space-y-2">
+                          {msg.attachments.map((att: any, idx: number) => {
+                            if (att.file_type === 'image') {
+                              return <img key={att.id || idx} src={att.data_url} alt="Anexo" className="max-w-full rounded-md" />;
+                            }
+                            if (att.file_type === 'audio') {
+                              return <audio key={att.id || idx} controls src={att.data_url} className="w-full max-w-[250px]" />;
+                            }
+                            if (att.file_type === 'video') {
+                              return <video key={att.id || idx} controls src={att.data_url} className="max-w-full rounded-md" />;
+                            }
+                            return (
+                              <a key={att.id || idx} href={att.data_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/5 rounded-md text-blue-600 hover:underline">
+                                <FileText className="w-4 h-4" />
+                                <span className="text-sm font-medium truncate max-w-[200px]">Arquivo ({att.extension || 'Anexo'})</span>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {msg.content && <p className="text-[15px] whitespace-pre-wrap break-words">{msg.content}</p>}
                       <span className="text-[10px] text-gray-500 block text-right mt-1 flex items-center justify-end gap-1">
                         {formatTime(msg.created_at)}
                         {isOutgoing && (
