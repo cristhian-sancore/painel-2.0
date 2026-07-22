@@ -10,16 +10,7 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      # Mapeamento do .env do painel (Adicione suas credenciais originais aqui no Portainer)
-      - DATABASE_URL=file:./dev.db
-      - NEXTAUTH_SECRET=supersecret12345
-      - NEXTAUTH_URL=http://localhost:3001
-      - GLPI_API_URL=https://glpi.cristhiansancore.com.br/apirest.php
-      - GLPI_APP_TOKEN=Sancore@2404
-      - GLPI_USER_TOKEN=X2YDSYheWgkqTK5qiUpcksoFTuJ3q3ynmKwwMYnf
-      - EVOLUTION_API_URL=https://api.cristhiansancore.com.br/manager/
-      - EVOLUTION_API_KEY=sancore_evolution_master_key_123
-      - CHATWOOT_API_URL=https://chatwoot2.cristhiansancore.com.br
-      - CHATWOOT_ACCESS_TOKEN=WGMzdQwPraor579LG7o9NRcm
