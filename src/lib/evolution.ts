@@ -75,11 +75,15 @@ export class EvolutionClient {
     const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const chatwootTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
 
-    const chatwootUrl = chatwootUrlSetting?.value || process.env.CHATWOOT_API_URL || "";
+    let chatwootUrl = chatwootUrlSetting?.value || process.env.CHATWOOT_API_URL || "";
     const chatwootToken = chatwootTokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
 
     if (!chatwootUrl || !chatwootToken) {
       throw new Error("Credenciais do Chatwoot ausentes. Vá em Configurações Globais para configurar.");
+    }
+
+    if (!chatwootUrl.startsWith("http")) {
+      chatwootUrl = "https://" + chatwootUrl;
     }
 
     const res = await fetch(`${this.url}/chatwoot/set/${instanceName}`, {
@@ -87,7 +91,7 @@ export class EvolutionClient {
       headers: this.headers,
       body: JSON.stringify({
         enabled: true,
-        accountId: accountId,
+        accountId: String(accountId),
         token: chatwootToken,
         url: chatwootUrl,
         signMsg: true,

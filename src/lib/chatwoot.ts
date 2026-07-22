@@ -20,6 +20,10 @@ export class ChatwootClient {
       throw new Error("As configurações do Chatwoot não foram definidas no painel. Vá em Configurações Globais.");
     }
 
+    if (!client.url.startsWith("http")) {
+      client.url = "https://" + client.url;
+    }
+
     if (client.url.endsWith('/')) {
       client.url = client.url.slice(0, -1);
     }
