@@ -58,6 +58,7 @@ export class EvolutionClient {
       body: JSON.stringify({
         instanceName: instanceName.replace(/\s+/g, '-').toLowerCase(),
         qrcode: true,
+        integration: "WHATSAPP-BAILEYS"
       }),
     });
 
