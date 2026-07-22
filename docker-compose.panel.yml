@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   datacenter-panel:
-    image: sancore/datacenter-panel:latest
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/cristhian-sancore/painel-2.0/datacenter-panel:latest
     container_name: datacenter-panel
     restart: unless-stopped
     ports:
