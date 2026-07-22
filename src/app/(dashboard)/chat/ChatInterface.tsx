@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter } from "lucide-react";
 
-import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction } from "./actions";
+import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction, fetchAgentsAction, assignAgentAction, updatePriorityAction, toggleStatusAction } from "./actions";
 
 function CustomAudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -102,15 +102,24 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   const [zoomScale, setZoomScale] = useState(1);
   const [openMenuMsgId, setOpenMenuMsgId] = useState<number | null>(null);
 
+  // Filtros
+  const [filterAssignee, setFilterAssignee] = useState<'me'|'unassigned'|'all'>('me');
+  const [filterStatus, setFilterStatus] = useState<'open'|'resolved'|'all'>('open');
+  
+  // Painel lateral e Agentes
+  const [showContactInfo, setShowContactInfo] = useState(true);
+  const [agents, setAgents] = useState<any[]>([]);
+  
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef(0);
 
   useEffect(() => {
     fetchConversations();
+    fetchAgents();
     const interval = setInterval(fetchConversations, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filterAssignee, filterStatus]);
 
   useEffect(() => {
     if (activeConvId) {
@@ -142,9 +151,14 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     prevMessagesLength.current = messages.length;
   }, [messages]);
 
+  async function fetchAgents() {
+    const data = await fetchAgentsAction(url, token);
+    setAgents(data);
+  }
+
   async function fetchConversations() {
     try {
-      const data = await fetchConversationsAction(url, publicUrl, token);
+      const data = await fetchConversationsAction(url, publicUrl, token, filterAssignee, filterStatus);
       setConversations(data);
     } catch (err) {
       console.error("Error fetching conversations:", err);
@@ -182,7 +196,6 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     };
     setMessages(prev => [...prev, optimisticMsg]);
     
-    // Force scroll to bottom on user send
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
@@ -209,6 +222,27 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       fetchMessages(activeConvId);
     } catch (err) {
       console.error("Erro ao deletar:", err);
+    }
+  }
+
+  async function handleAssignAgent(assigneeId: number) {
+    if (!activeConvId) return;
+    await assignAgentAction(url, token, activeConvId, assigneeId);
+    fetchConversations(); // Reload to reflect changes
+  }
+
+  async function handleUpdatePriority(priority: string) {
+    if (!activeConvId) return;
+    await updatePriorityAction(url, token, activeConvId, priority === 'none' ? null : priority);
+    fetchConversations();
+  }
+
+  async function handleToggleStatus(newStatus: string) {
+    if (!activeConvId) return;
+    await toggleStatusAction(url, token, activeConvId, newStatus);
+    fetchConversations();
+    if (newStatus === 'resolved' && filterStatus === 'open') {
+      setActiveConvId(null);
     }
   }
 
@@ -247,18 +281,53 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       )}
 
       <div className="flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => setOpenMenuMsgId(null)}>
-        {/* Sidebar */}
-        <div className="w-1/3 min-w-[300px] border-r border-gray-200 flex flex-col bg-gray-50">
+        {/* Left Sidebar - Conversations */}
+        <div className="w-1/4 min-w-[300px] border-r border-gray-200 flex flex-col bg-gray-50 shrink-0">
           <div className="p-4 border-b border-gray-200 bg-white">
-            <h2 className="text-lg font-bold text-gray-800">Minhas Conversas</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-800">Conversas</h2>
+              <div className="relative group">
+                <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium text-gray-700 flex items-center gap-1 transition-colors">
+                  <Filter className="w-4 h-4" /> {filterStatus === 'open' ? 'Abertas' : filterStatus === 'resolved' ? 'Resolvidas' : 'Todas'}
+                </button>
+                <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
+                  <button onClick={() => setFilterStatus('open')} className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${filterStatus === 'open' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>Abertas</button>
+                  <button onClick={() => setFilterStatus('resolved')} className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${filterStatus === 'resolved' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>Resolvidas</button>
+                  <button onClick={() => setFilterStatus('all')} className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${filterStatus === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>Todas</button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Tabs */}
+            <div className="flex gap-1 overflow-x-auto pb-1">
+              <button 
+                onClick={() => setFilterAssignee('me')} 
+                className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${filterAssignee === 'me' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                Minhas
+              </button>
+              <button 
+                onClick={() => setFilterAssignee('unassigned')} 
+                className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${filterAssignee === 'unassigned' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                Não atribuídas
+              </button>
+              <button 
+                onClick={() => setFilterAssignee('all')} 
+                className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${filterAssignee === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                Todos
+              </button>
+            </div>
           </div>
+
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="p-4 text-center text-gray-500">Carregando...</div>
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-gray-400 flex flex-col items-center">
                 <AlertCircle className="w-10 h-10 mb-2 opacity-50" />
-                <p>Nenhuma conversa atribuída a você.</p>
+                <p>Nenhuma conversa encontrada.</p>
               </div>
             ) : (
               conversations.map((conv) => {
@@ -272,12 +341,12 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                     onClick={() => setActiveConvId(conv.id)}
                     className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-blue-50 transition-colors flex gap-3 ${activeConvId === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="relative w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
                       {sender?.thumbnail ? (
                         <img 
                           src={sender.thumbnail} 
                           alt={sender.name || "Avatar"} 
-                          className="w-full h-full object-cover" 
+                          className="w-full h-full object-cover rounded-full" 
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             if (e.currentTarget.nextElementSibling) {
@@ -286,9 +355,13 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                           }}
                         />
                       ) : null}
-                      <div className="w-full h-full items-center justify-center" style={{ display: sender?.thumbnail ? 'none' : 'flex' }}>
-                        <UserIcon className="w-5 h-5" />
+                      <div className="w-full h-full items-center justify-center rounded-full" style={{ display: sender?.thumbnail ? 'none' : 'flex' }}>
+                        <UserIcon className="w-6 h-6" />
                       </div>
+                      {/* Online dot */}
+                      {sender?.availability_status === 'online' && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
@@ -306,36 +379,46 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
           </div>
         </div>
 
-        {/* Main */}
-        <div className="flex-1 flex flex-col bg-[#e5ddd5]">
+        {/* Center Main - Chat */}
+        <div className="flex-1 flex flex-col bg-[#e5ddd5] min-w-0 border-r border-gray-200">
           {activeConvId && activeConv ? (
             <>
               {/* Header */}
-              <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center gap-4 shadow-sm z-10">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
-                  {activeConv.meta?.sender?.thumbnail ? (
-                    <img 
-                      src={activeConv.meta.sender.thumbnail} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        if (e.currentTarget.nextElementSibling) {
-                          (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                        }
-                      }}
-                    />
-                  ) : null}
-                  <div className="w-full h-full items-center justify-center" style={{ display: activeConv.meta?.sender?.thumbnail ? 'none' : 'flex' }}>
-                    <UserIcon className="w-5 h-5" />
+              <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10 shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+                    {activeConv.meta?.sender?.thumbnail ? (
+                      <img 
+                        src={activeConv.meta.sender.thumbnail} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className="w-full h-full items-center justify-center" style={{ display: activeConv.meta?.sender?.thumbnail ? 'none' : 'flex' }}>
+                      <UserIcon className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">{activeConv.meta?.sender?.name || activeConv.meta?.sender?.phone_number || "Desconhecido"}</h3>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {activeConv.meta?.sender?.phone_number || "Sem telefone"}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">{activeConv.meta?.sender?.name || activeConv.meta?.sender?.phone_number || "Desconhecido"}</h3>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> {activeConv.meta?.sender?.phone_number || "Sem telefone"}
-                  </p>
-                </div>
+                
+                {/* Mobile Info Toggle */}
+                <button 
+                  onClick={() => setShowContactInfo(!showContactInfo)}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-full lg:hidden"
+                >
+                  <Info className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Messages */}
@@ -347,7 +430,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                   if (isActivity) {
                     return (
                       <div key={msg.id} className="flex justify-center my-2">
-                        <span className="px-3 py-1 bg-yellow-100/80 text-yellow-800 text-xs rounded-lg shadow-sm">
+                        <span className="px-3 py-1 bg-yellow-100/80 text-yellow-800 text-xs rounded-lg shadow-sm text-center max-w-[80%]">
                           {msg.content}
                         </span>
                       </div>
@@ -359,7 +442,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
 
                   return (
                     <div key={msg.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`group max-w-[70%] p-3 rounded-lg shadow-sm relative ${isOutgoing ? 'bg-[#d9fdd3] text-gray-900 rounded-tr-none' : 'bg-white text-gray-900 rounded-tl-none'}`}>
+                      <div className={`group max-w-[80%] md:max-w-[70%] p-3 rounded-lg shadow-sm relative ${isOutgoing ? 'bg-[#d9fdd3] text-gray-900 rounded-tr-none' : 'bg-white text-gray-900 rounded-tl-none'}`}>
                         {/* Dropdown Menu Toggle */}
                         <div className={`absolute top-1 ${isOutgoing ? 'left-[-35px]' : 'right-[-35px]'} opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
                           <button 
@@ -490,6 +573,116 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
             </div>
           )}
         </div>
+
+        {/* Right Sidebar - Contact & Actions */}
+        {activeConvId && activeConv && showContactInfo && (
+          <div className="w-[300px] shrink-0 bg-white flex flex-col overflow-y-auto absolute lg:relative right-0 h-[calc(100vh-4rem)] z-30 shadow-2xl lg:shadow-none border-l border-gray-200 transition-transform">
+            <div className="p-4 flex items-center justify-between border-b border-gray-100 lg:hidden">
+              <h2 className="font-semibold text-gray-700">Contatos</h2>
+              <button onClick={() => setShowContactInfo(false)} className="p-1 text-gray-500 rounded-full hover:bg-gray-100"><X className="w-5 h-5"/></button>
+            </div>
+            
+            <div className="p-6">
+              {/* Contact Profile */}
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4 overflow-hidden shadow-sm">
+                  {activeConv.meta?.sender?.thumbnail ? (
+                    <img 
+                      src={activeConv.meta.sender.thumbnail} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold">
+                      {activeConv.meta?.sender?.name?.charAt(0)?.toUpperCase() || "C"}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">{activeConv.meta?.sender?.name || "Desconhecido"}</h2>
+                <span className={`px-2 py-1 mt-2 text-xs font-medium rounded-full ${activeConv.meta?.sender?.availability_status === 'online' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {activeConv.meta?.sender?.availability_status === 'online' ? 'Online' : 'Indisponível'}
+                </span>
+              </div>
+
+              {/* Contact Details */}
+              <div className="space-y-3 mb-8">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{activeConv.meta?.sender?.email || "Indisponível"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{activeConv.meta?.sender?.phone_number || "Indisponível"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Hash className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="truncate" title={activeConv.meta?.sender?.identifier}>{activeConv.meta?.sender?.identifier || "Indisponível"}</span>
+                </div>
+              </div>
+
+              <hr className="border-gray-100 mb-6" />
+
+              {/* Actions Section */}
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Briefcase className="w-4 h-4" /> Ações da conversa
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Agent Assignment */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Agente atribuído</label>
+                  <select 
+                    value={activeConv.meta?.assignee?.id || ''}
+                    onChange={(e) => handleAssignAgent(Number(e.target.value))}
+                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 bg-white border"
+                  >
+                    <option value="">Nenhum</option>
+                    {agents.map(agent => (
+                      <option key={agent.id} value={agent.id}>{agent.name || agent.available_name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Prioridade</label>
+                  <select 
+                    value={activeConv.priority || 'none'}
+                    onChange={(e) => handleUpdatePriority(e.target.value)}
+                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 bg-white border"
+                  >
+                    <option value="none">Nenhuma</option>
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta</option>
+                    <option value="urgent">Urgente</option>
+                  </select>
+                </div>
+
+                {/* Status Toggle */}
+                <div className="pt-4">
+                  {activeConv.status === 'open' ? (
+                    <button 
+                      onClick={() => handleToggleStatus('resolved')}
+                      className="w-full py-2 px-4 bg-green-50 hover:bg-green-100 text-green-700 font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-4 h-4" /> Marcar como Resolvida
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleToggleStatus('open')}
+                      className="w-full py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4" /> Reabrir Conversa
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

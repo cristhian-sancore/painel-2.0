@@ -1,8 +1,8 @@
 "use server";
 
-export async function fetchConversationsAction(apiUrl: string, publicUrl: string, token: string) {
+export async function fetchConversationsAction(apiUrl: string, publicUrl: string, token: string, assigneeType: string = 'me', status: string = 'open') {
   try {
-    const res = await fetch(`${apiUrl}/api/v1/accounts/1/conversations?status=all&assignee_type=all`, {
+    const res = await fetch(`${apiUrl}/api/v1/accounts/1/conversations?status=${status}&assignee_type=${assigneeType}`, {
       headers: { "api_access_token": token },
       cache: 'no-store'
     });
@@ -74,6 +74,74 @@ export async function deleteMessageAction(url: string, token: string, conversati
     });
     if (!res.ok) throw new Error("Failed to delete message");
     return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+export async function fetchAgentsAction(url: string, token: string) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/agents`, {
+      headers: { "api_access_token": token },
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error("Failed to fetch agents");
+    return await res.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function assignAgentAction(url: string, token: string, conversationId: number, assigneeId: number) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/assignments`, {
+      method: "POST",
+      headers: { 
+        "api_access_token": token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ assignee_id: assigneeId }),
+      cache: 'no-store'
+    });
+    return res.ok;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+export async function updatePriorityAction(url: string, token: string, conversationId: number, priority: string | null) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/toggle_priority`, {
+      method: "POST",
+      headers: { 
+        "api_access_token": token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ priority }),
+      cache: 'no-store'
+    });
+    return res.ok;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+export async function toggleStatusAction(url: string, token: string, conversationId: number, status: string) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/toggle_status`, {
+      method: "POST",
+      headers: { 
+        "api_access_token": token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status }),
+      cache: 'no-store'
+    });
+    return res.ok;
   } catch (error) {
     console.error(error);
     return false;
