@@ -254,7 +254,7 @@ export default function EvolutionPage() {
                     name="instanceName" 
                     required
                     placeholder="Ex: Suporte Financeiro"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900 bg-white"
                   />
                   <p className="text-xs text-gray-400 mt-1">Este nome será usado para criar a Caixa de Entrada no Chatwoot.</p>
                 </div>
@@ -270,11 +270,11 @@ export default function EvolutionPage() {
                     <select 
                       id="teamId" 
                       name="teamId" 
-                      className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
+                      className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none text-gray-900 bg-white"
                     >
-                      <option value="">-- Nenhuma Equipe --</option>
+                      <option value="" className="text-gray-900">-- Nenhuma Equipe --</option>
                       {teams.map(team => (
-                        <option key={team.id} value={team.id}>{team.name}</option>
+                        <option key={team.id} value={team.id} className="text-gray-900">{team.name}</option>
                       ))}
                     </select>
                   </div>
