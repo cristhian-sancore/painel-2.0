@@ -18,9 +18,46 @@ export default async function ChatPage() {
   }
 
   // Pegar o token do Chatwoot do usuário no banco
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  });
+  let user = null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+  } catch (error: any) {
+    // If the database is missing the new columns (e.g., in VPS volume), add them automatically
+    if (error.message && error.message.includes('chatwootAccessToken')) {
+      console.log("Auto-migrating User table to add chatwoot columns...");
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE User ADD COLUMN chatwootId INTEGER;`);
+      } catch (e) {}
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE User ADD COLUMN chatwootAccessToken TEXT;`);
+      } catch (e) {}
+      
+      // Try again
+      user = await prisma.user.findUnique({
+        where: { email: session.user.email }
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  // --- Auto-fill admin token for VPS transition ---
+  if (user && !user.chatwootAccessToken && user.email === "cristhiansancore@gmail.com") {
+    console.log("Auto-filling admin Chatwoot token...");
+    try {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          chatwootAccessToken: "i9Ch9WjTicBEyfBtiqqNukZS",
+          chatwootId: 1
+        }
+      });
+    } catch (e) {
+      console.error("Failed to auto-fill admin token:", e);
+    }
+  }
 
   if (!user?.chatwootAccessToken) {
     return (
