@@ -13,8 +13,8 @@ export class EvolutionClient {
     const urlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } });
     const keySetting = await prisma.setting.findUnique({ where: { key: "evolution_key" } });
     
-    client.url = process.env.EVOLUTION_API_URL || urlSetting?.value || "";
-    client.apiKey = process.env.EVOLUTION_API_KEY || keySetting?.value || "";
+    client.url = urlSetting?.value || process.env.EVOLUTION_API_URL || "";
+    client.apiKey = keySetting?.value || process.env.EVOLUTION_API_KEY || "";
     
     if (!client.url || !client.apiKey) {
       throw new Error("As configurações da API Evolution não foram definidas no painel. Vá em Configurações Globais.");
@@ -75,8 +75,8 @@ export class EvolutionClient {
     const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const chatwootTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
 
-    let chatwootUrl = process.env.CHATWOOT_API_URL || chatwootUrlSetting?.value || "";
-    const chatwootToken = process.env.CHATWOOT_ACCESS_TOKEN || chatwootTokenSetting?.value || "";
+    let chatwootUrl = chatwootUrlSetting?.value || process.env.CHATWOOT_API_URL || "";
+    const chatwootToken = chatwootTokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
 
     if (!chatwootUrl || !chatwootToken) {
       throw new Error("Credenciais do Chatwoot ausentes. Vá em Configurações Globais para configurar.");

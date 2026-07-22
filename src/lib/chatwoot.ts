@@ -13,8 +13,8 @@ export class ChatwootClient {
     const urlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const tokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
     
-    client.url = process.env.CHATWOOT_API_URL || urlSetting?.value || "";
-    client.accessToken = process.env.CHATWOOT_ACCESS_TOKEN || tokenSetting?.value || "";
+    client.url = urlSetting?.value || process.env.CHATWOOT_API_URL || "";
+    client.accessToken = tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
     
     if (!client.url || !client.accessToken) {
       throw new Error("As configurações do Chatwoot não foram definidas no painel. Vá em Configurações Globais.");
