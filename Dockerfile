@@ -21,6 +21,7 @@ COPY . .
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 
+RUN npx prisma db push
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -43,6 +44,10 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
+
+# Give nextjs user write permission to /app so it can create dev.db
+RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
