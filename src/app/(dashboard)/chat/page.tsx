@@ -25,7 +25,7 @@ export default async function ChatPage() {
     });
   } catch (error: any) {
     // If the database is missing the new columns (e.g., in VPS volume), add them automatically
-    if (error.message && error.message.includes('chatwootAccessToken')) {
+    if (error.message && (error.message.includes('chatwootAccessToken') || error.message.includes('chatwootId'))) {
       console.log("Auto-migrating User table to add chatwoot columns...");
       try {
         await prisma.$executeRawUnsafe(`ALTER TABLE User ADD COLUMN chatwootId INTEGER;`);
