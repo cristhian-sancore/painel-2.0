@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare } from "lucide-react";
 
 export default function ChatInterface({ token, url }: { token: string, url: string }) {
   const [conversations, setConversations] = useState<any[]>([]);
