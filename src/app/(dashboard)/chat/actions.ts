@@ -41,18 +41,38 @@ export async function fetchMessagesAction(apiUrl: string, publicUrl: string, tok
   }
 }
 
-export async function sendMessageAction(url: string, token: string, conversationId: number, content: string) {
+export async function sendMessageAction(url: string, token: string, conversationId: number, content: string, replyToId?: number) {
   try {
+    const payload: any = { content, message_type: 'outgoing', private: false };
+    if (replyToId) {
+      payload.content_attributes = { in_reply_to: replyToId };
+    }
+
     const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/messages`, {
       method: "POST",
       headers: { 
         "api_access_token": token,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ content, message_type: 'outgoing', private: false }),
+      body: JSON.stringify(payload),
       cache: 'no-store'
     });
     if (!res.ok) throw new Error("Failed to send message");
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+export async function deleteMessageAction(url: string, token: string, conversationId: number, messageId: number) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/messages/${messageId}`, {
+      method: "DELETE",
+      headers: { "api_access_token": token },
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error("Failed to delete message");
     return true;
   } catch (error) {
     console.error(error);
