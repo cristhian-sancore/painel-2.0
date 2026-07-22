@@ -33,3 +33,12 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Força a cor do texto para escuro em inputs, selects e textareas para evitar o problema de texto branco no fundo branco */
+@layer base {
+  input:not(.bg-\\[\\#0f172a\\]), 
+  select:not(.bg-\\[\\#0f172a\\]), 
+  textarea:not(.bg-\\[\\#0f172a\\]) {
+    color: #0f172a !important;
+  }
+}

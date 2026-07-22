@@ -110,7 +110,7 @@ export default function SettingsPage() {
                 value={settings.evolution_url}
                 onChange={handleChange}
                 placeholder="https://api.seudominio.com.br"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -121,7 +121,7 @@ export default function SettingsPage() {
                 value={settings.evolution_key}
                 onChange={handleChange}
                 placeholder="Sua chave secreta do Evolution"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function SettingsPage() {
                 value={settings.chatwoot_url}
                 onChange={handleChange}
                 placeholder="https://chatwoot.seudominio.com.br"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
                 value={settings.chatwoot_token}
                 onChange={handleChange}
                 placeholder="WGMzdQwPraor579LG7o9NRcm"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -166,7 +166,7 @@ export default function SettingsPage() {
                 value={settings.chatwoot_platform_token || ""}
                 onChange={handleChange}
                 placeholder="Token de Plataforma do Chatwoot"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                 value={settings.proxmox_url}
                 onChange={handleChange}
                 placeholder="https://192.168.0.10:8006/api2/json"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                 value={settings.proxmox_token}
                 onChange={handleChange}
                 placeholder="root@pam!TokenId=Secret"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function SettingsPage() {
                 value={settings.glpi_url}
                 onChange={handleChange}
                 placeholder="https://glpi.seudominio.com.br/apirest.php"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 value={settings.glpi_token}
                 onChange={handleChange}
                 placeholder="Seus tokens do GLPI"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
