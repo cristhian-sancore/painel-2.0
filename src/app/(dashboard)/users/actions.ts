@@ -84,59 +84,68 @@ export async function createUserAction(formData: FormData) {
         body: JSON.stringify({
           name: newUser.name,
           email: newUser.email,
-          password: password, // Sending plain password so Chatwoot can hash it internally
+          password: password,
         })
       });
 
       if (chatwootRes.ok) {
-        const cwUser: any = await chatwootRes.json();
-        console.log("[Chatwoot Sync] Usuário criado no Chatwoot com ID:", cwUser.id);
+        const cwUserResp: any = await chatwootRes.json();
+        // Chatwoot might return the user directly or wrapped in a user object
+        const cwUserId = cwUserResp.id || cwUserResp.user?.id;
+        console.log("[Chatwoot Sync] Usuário criado no Chatwoot com ID:", cwUserId);
         
-        // Link user to account 1 (assumed default account)
-        const linkRes = await fetch(`${chatwootUrl}/platform/api/v1/accounts/1/account_users`, {
-          method: "POST",
-          headers: {
-            "api_access_token": platformToken,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            user_id: cwUser.id,
-            role: role
-          })
-        });
-        
-        if (!linkRes.ok) {
-           console.error("[Chatwoot Sync] Falha ao vincular usuário à conta:", await linkRes.text());
-        } else {
-           console.log("[Chatwoot Sync] Usuário vinculado com sucesso à conta 1 como", role);
-           
-           // If user has an accessGroup, try to add them to the corresponding Chatwoot Team
-           if (newUser.accessGroup && newUser.accessGroup.name) {
-             try {
-               const { ChatwootClient } = require("@/lib/chatwoot");
-               const cwClient = await ChatwootClient.init();
+        try {
+          const { ChatwootClient } = require("@/lib/chatwoot");
+          const cwClient = await ChatwootClient.init();
+          const accountId = cwClient.accountId; // Conta principal recuperada via API
+          
+          if (!accountId) {
+            console.error("[Chatwoot Sync] Nenhuma conta encontrada no Chatwoot para vincular o usuário.");
+          } else {
+            // Link user to account
+            const linkRes = await fetch(`${chatwootUrl}/platform/api/v1/accounts/${accountId}/account_users`, {
+              method: "POST",
+              headers: {
+                "api_access_token": platformToken,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                user_id: cwUserId,
+                role: role
+              })
+            });
+            
+            if (!linkRes.ok) {
+               console.error(`[Chatwoot Sync] Falha ao vincular usuário à conta ${accountId}:`, await linkRes.text());
+            } else {
+               console.log(`[Chatwoot Sync] Usuário vinculado com sucesso à conta ${accountId} como ${role}`);
                
-               const teamsRes = await cwClient.getTeams();
-               const teams = Array.isArray(teamsRes) ? teamsRes : (teamsRes.payload || []);
-               
-               const targetTeam = teams.find((t: any) => t.name.toLowerCase() === newUser.accessGroup!.name.toLowerCase());
-               
-               if (targetTeam) {
-                 await cwClient.addTeamMember(targetTeam.id, [cwUser.id]);
-                 console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à equipe ${targetTeam.name}`);
-               } else {
-                 console.log(`[Chatwoot Sync] Nenhuma equipe encontrada no Chatwoot com o nome ${newUser.accessGroup.name}`);
+               // If user has an accessGroup, try to add them to the corresponding Chatwoot Team
+               if (newUser.accessGroup && newUser.accessGroup.name) {
+                 try {
+                   const teamsRes = await cwClient.getTeams();
+                   const teams = Array.isArray(teamsRes) ? teamsRes : (teamsRes.payload || []);
+                   
+                   const targetTeam = teams.find((t: any) => t.name.toLowerCase() === newUser.accessGroup!.name.toLowerCase());
+                   
+                   if (targetTeam) {
+                     await cwClient.addTeamMember(targetTeam.id, [cwUserId]);
+                     console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à equipe ${targetTeam.name}`);
+                   } else {
+                     console.log(`[Chatwoot Sync] Nenhuma equipe encontrada no Chatwoot com o nome ${newUser.accessGroup.name}`);
+                   }
+                 } catch (teamErr) {
+                   console.error("[Chatwoot Sync] Erro ao adicionar usuário à equipe:", teamErr);
+                 }
                }
-             } catch (teamErr) {
-               console.error("[Chatwoot Sync] Erro ao adicionar usuário à equipe:", teamErr);
-             }
-           }
+            }
+          }
+        } catch (cwInitError) {
+          console.error("[Chatwoot Sync] Erro ao inicializar cliente Chatwoot:", cwInitError);
         }
       } else {
         const errText = await chatwootRes.text();
         console.error("[Chatwoot Sync] Erro na API do Chatwoot:", errText);
-        // We don't block the panel user creation if Chatwoot fails, but we log it.
-        // In a real scenario, we might want to return a warning message to the user.
       }
     } else {
       console.warn("[Chatwoot Sync] Token da Platform API não encontrado. O usuário não foi sincronizado com o Chatwoot.");
