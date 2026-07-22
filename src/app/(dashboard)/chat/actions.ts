@@ -38,7 +38,7 @@ export async function sendMessageAction(url: string, token: string, conversation
         "api_access_token": token,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ content, private: false }),
+      body: JSON.stringify({ content, message_type: 'outgoing', private: false }),
       cache: 'no-store'
     });
     if (!res.ok) throw new Error("Failed to send message");
