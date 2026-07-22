@@ -4,7 +4,7 @@ import { LayoutDashboard, MessageSquare, Ticket, Server, Globe, HardDrive, Setti
 export default function Sidebar() {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
-    { name: 'Chatwoot', icon: MessageSquare, path: '/chatwoot' },
+    { name: 'Chat', icon: MessageSquare, path: '/chat' },
     { name: 'WhatsApp (Evo)', icon: Smartphone, path: '/evolution' },
     { name: 'Chamados (GLPI)', icon: Ticket, path: '/glpi' },
     { name: 'Datacenter', icon: Server, path: '/datacenter' },

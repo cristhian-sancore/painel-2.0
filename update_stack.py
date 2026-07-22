@@ -1,20 +1,19 @@
 import requests
-import urllib3
 import json
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import urllib3
+urllib3.disable_warnings()
 
 PORTAINER_URL = "https://PORTAINER.CRISTHIANSANCORE.COM.BR"
 API_KEY = "ptr_u1U9VC6iS9m0gLl2DJ4jMWvOCqt2KYNNaQ0NNs/+OFk="
+STACK_ID = 14
+ENDPOINT_ID = 3
 
 headers = {
     "X-API-Key": API_KEY,
     "Content-Type": "application/json"
 }
 
-# The fixed compose file
-COMPOSE_FILE = """
-version: '3'
+NEW_COMPOSE = """version: '3'
 services:
   postgres-cw:
     image: pgvector/pgvector:pg15
@@ -99,6 +98,9 @@ services:
       - DATABASE_CONNECTION_URI=postgresql://postgres:chatwoot_strong_password@postgres-cw:5432/evolution_db?schema=public
       - CACHE_REDIS_URI=redis://redis-cw:6379/1
       - CACHE_REDIS_PREFIX_KEY=evolution
+      - CHATWOOT_ENABLED=true
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_MEDIA=true
     depends_on:
       - postgres-cw
       - redis-cw
@@ -109,43 +111,16 @@ volumes:
   chatwoot-redis-data:
 """
 
-def update_stack():
-    endpoint_id = 3
-    
-    # 1. Get stacks
-    print("Buscando stacks...")
-    resp = requests.get(f"{PORTAINER_URL}/api/stacks", headers=headers, verify=False)
-    if resp.status_code != 200:
-        print(f"Erro ao listar stacks: {resp.status_code}")
-        return
-        
-    stacks = resp.json()
-    target_stack = next((s for s in stacks if s['Name'] == 'chatwoot-evolution'), None)
-    
-    if not target_stack:
-        print("Stack chatwoot-evolution não encontrada!")
-        return
-        
-    stack_id = target_stack['Id']
-    
-    # 2. Update stack
-    print(f"Atualizando stack {stack_id}...")
-    
-    # Needs Prune=False, PullImage=False, StackFileContent
-    payload = {
-        "StackFileContent": COMPOSE_FILE,
-        "Env": target_stack.get('Env', []),
-        "Prune": False,
-        "PullImage": True
-    }
-    
-    update_url = f"{PORTAINER_URL}/api/stacks/{stack_id}?endpointId={endpoint_id}"
-    update_resp = requests.put(update_url, headers=headers, json=payload, verify=False)
-    
-    if update_resp.status_code == 200:
-        print("Stack atualizada com sucesso! Recriando containers...")
-    else:
-        print(f"Erro ao atualizar stack: {update_resp.status_code} - {update_resp.text}")
+payload = {
+    "env": [],
+    "prune": False,
+    "pullImage": False,
+    "stackFileContent": NEW_COMPOSE
+}
 
-if __name__ == "__main__":
-    update_stack()
+url = f"{PORTAINER_URL}/api/stacks/{STACK_ID}?endpointId={ENDPOINT_ID}"
+res = requests.put(url, headers=headers, json=payload, verify=False)
+if res.status_code == 200:
+    print("Stack updated successfully!")
+else:
+    print(f"Error updating stack: {res.status_code} - {res.text}")

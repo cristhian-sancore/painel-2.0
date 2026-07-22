@@ -115,7 +115,7 @@ export async function createUserAction(formData: FormData) {
               })
             });
             
-            if (!linkRes.ok) {
+             if (!linkRes.ok) {
                console.error(`[Chatwoot Sync] Falha ao vincular usuário à conta ${accountId}:`, await linkRes.text());
             } else {
                console.log(`[Chatwoot Sync] Usuário vinculado com sucesso à conta ${accountId} como ${role}`);
@@ -143,6 +143,36 @@ export async function createUserAction(formData: FormData) {
         } catch (cwInitError) {
           console.error("[Chatwoot Sync] Erro ao inicializar cliente Chatwoot:", cwInitError);
         }
+
+        // --- NEW CODE: Login to get Personal Access Token ---
+        let chatwootAccessToken = null;
+        try {
+           const loginRes = await fetch(`${chatwootUrl}/auth/sign_in`, {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({ email: newUser.email, password: password })
+           });
+           if (loginRes.ok) {
+              const loginData = await loginRes.json();
+              if (loginData.data && loginData.data.access_token) {
+                 chatwootAccessToken = loginData.data.access_token;
+                 console.log("[Chatwoot Sync] Token pessoal capturado com sucesso.");
+              }
+           } else {
+              console.error("[Chatwoot Sync] Falha ao fazer login para capturar token.");
+           }
+        } catch (loginErr) {
+           console.error("[Chatwoot Sync] Erro no login:", loginErr);
+        }
+
+        // --- NEW CODE: Update User with Chatwoot data ---
+        await prisma.user.update({
+           where: { id: newUser.id },
+           data: {
+             chatwootId: cwUserId,
+             chatwootAccessToken: chatwootAccessToken
+           }
+        });
       } else {
         const errText = await chatwootRes.text();
         console.error("[Chatwoot Sync] Erro na API do Chatwoot:", errText);
