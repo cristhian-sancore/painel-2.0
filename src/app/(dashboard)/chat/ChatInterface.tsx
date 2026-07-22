@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck } from "lucide-react";
 
 import { fetchConversationsAction, fetchMessagesAction, sendMessageAction } from "./actions";
 
@@ -69,7 +69,8 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
       content: msgToSend,
       message_type: 1, // 1 = outgoing
       created_at: Math.floor(Date.now() / 1000),
-      sender_type: "User"
+      sender_type: "User",
+      status: "progress"
     };
     setMessages(prev => [...prev, optimisticMsg]);
 
@@ -188,8 +189,13 @@ export default function ChatInterface({ token, url }: { token: string, url: stri
                     >
                       <p className="text-[15px] whitespace-pre-wrap break-words">{msg.content}</p>
                       <span className="text-[10px] text-gray-500 block text-right mt-1 flex items-center justify-end gap-1">
-                        <Clock className="w-3 h-3" />
                         {formatTime(msg.created_at)}
+                        {isOutgoing && (
+                          msg.status === 'read' ? <CheckCheck className="w-3 h-3 text-blue-500" /> :
+                          msg.status === 'delivered' ? <CheckCheck className="w-3 h-3 text-gray-500" /> :
+                          msg.status === 'progress' || msg.status === 'failed' ? <Clock className="w-3 h-3 text-gray-400" /> :
+                          <Check className="w-3 h-3 text-gray-500" />
+                        )}
                       </span>
                     </div>
                   </div>
