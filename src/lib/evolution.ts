@@ -112,4 +112,64 @@ export class EvolutionClient {
 
     return await res.json();
   }
+
+  // 4. Get Connection State
+  public async getConnectionState(instanceName: string) {
+    const res = await fetch(`${this.url}/instance/connectionState/${instanceName}`, {
+      method: "GET",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      console.error(`Evolution API Error: ${res.status} - ${res.statusText}`);
+      return null;
+    }
+
+    return await res.json();
+  }
+
+  // 5. Delete Instance
+  public async deleteInstance(instanceName: string) {
+    const res = await fetch(`${this.url}/instance/delete/${instanceName}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to delete instance: ${errorText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 6. Logout Instance
+  public async logoutInstance(instanceName: string) {
+    const res = await fetch(`${this.url}/instance/logout/${instanceName}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to logout instance: ${errorText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 7. Get QR Code
+  public async getQrCode(instanceName: string) {
+    const res = await fetch(`${this.url}/instance/connect/${instanceName}`, {
+      method: "GET",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to get QR code: ${errorText}`);
+    }
+
+    return await res.json();
+  }
 }

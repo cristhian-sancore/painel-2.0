@@ -105,4 +105,85 @@ export class ChatwootClient {
 
     return await res.json();
   }
+
+  // 4. Get Teams
+  public async getTeams() {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/teams`, {
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch teams: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 5. Get Agents
+  public async getAgents() {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/agents`, {
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch agents: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 6. Get Team Members
+  public async getTeamMembers(teamId: number) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/teams/${teamId}/team_members`, {
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch team members: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 7. Assign Members to Inbox
+  public async assignMembersToInbox(inboxId: number, userIds: number[]) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/inbox_members`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        inbox_id: inboxId,
+        user_ids: userIds,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to assign members to inbox: ${res.statusText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 8. Delete Inbox
+  public async deleteInbox(inboxId: number) {
+    await this.setAccountId();
+    
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/inboxes/${inboxId}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to delete inbox: ${res.statusText}`);
+    }
+
+    return true;
+  }
 }
