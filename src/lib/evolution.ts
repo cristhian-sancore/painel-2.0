@@ -82,8 +82,8 @@ export class EvolutionClient {
       throw new Error("Credenciais do Chatwoot ausentes. Vá em Configurações Globais para configurar.");
     }
 
-    // Use static IP assigned in docker-compose.yml
-    const internalChatwootUrl = "http://172.28.0.10:3000";
+    // Use configured Chatwoot URL or default
+    const internalChatwootUrl = chatwootUrl || "https://chatwoot2.cristhiansancore.com.br";
 
     const res = await fetch(`${this.url}/chatwoot/set/${instanceName}`, {
       method: "POST",

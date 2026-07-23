@@ -426,9 +426,9 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         </div>
       )}
 
-      <div className="relative flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
+      <div className="relative flex h-full flex-1 w-full bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
         {/* Left Sidebar - Conversations */}
-        <div className={`w-full md:w-1/3 lg:w-1/4 md:min-w-[280px] border-r border-gray-200 flex-col bg-gray-50 shrink-0 ${activeConvId ? 'hidden md:flex' : 'flex'}`}>
+        <div className={`w-full md:w-1/3 lg:w-1/4 md:min-w-[280px] border-r border-gray-200 flex flex-col bg-gray-50 shrink-0 ${activeConvId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-800">Conversas</h2>
