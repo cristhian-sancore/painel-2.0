@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter, Paperclip, Mic, Smile, Square } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter, Paperclip, Mic, Smile, Square, ChevronLeft } from "lucide-react";
 
 import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction, fetchAgentsAction, assignAgentAction, updatePriorityAction, toggleStatusAction, fetchCannedResponsesAction } from "./actions";
 
@@ -426,9 +426,9 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         </div>
       )}
 
-      <div className="flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
+      <div className="relative flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
         {/* Left Sidebar - Conversations */}
-        <div className="w-1/4 min-w-[300px] border-r border-gray-200 flex flex-col bg-gray-50 shrink-0">
+        <div className={`w-full md:w-1/3 lg:w-1/4 md:min-w-[280px] border-r border-gray-200 flex-col bg-gray-50 shrink-0 ${activeConvId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-800">Conversas</h2>
@@ -526,44 +526,54 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         </div>
 
         {/* Center Main - Chat */}
-        <div className="flex-1 flex flex-col bg-[#e5ddd5] min-w-0 border-r border-gray-200">
+        <div className={`flex-1 flex-col bg-[#e5ddd5] min-w-0 border-r border-gray-200 relative ${!activeConvId ? 'hidden md:flex' : 'flex'}`}>
           {activeConvId && activeConv ? (
             <>
               {/* Header */}
-              <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10 shrink-0">
-                <button 
-                  onClick={() => setShowContactInfo(!showContactInfo)}
-                  className="flex items-center gap-4 hover:bg-gray-50 p-2 -ml-2 rounded-lg transition-colors text-left"
-                >
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
-                    {activeConv.meta?.sender?.thumbnail ? (
-                      <img 
-                        src={activeConv.meta.sender.thumbnail} 
-                        alt="Avatar" 
-                        className="w-full h-full object-cover" 
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          if (e.currentTarget.nextElementSibling) {
-                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                          }
-                        }}
-                      />
-                    ) : null}
-                    <div className="w-full h-full items-center justify-center" style={{ display: activeConv.meta?.sender?.thumbnail ? 'none' : 'flex' }}>
-                      <UserIcon className="w-5 h-5" />
+              <div className="h-16 px-4 md:px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10 shrink-0">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setActiveConvId(null)} 
+                    className="md:hidden p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Voltar para conversas"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button 
+                    onClick={() => setShowContactInfo(!showContactInfo)}
+                    className="flex items-center gap-3 hover:bg-gray-50 p-1.5 rounded-lg transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+                      {activeConv.meta?.sender?.thumbnail ? (
+                        <img 
+                          src={activeConv.meta.sender.thumbnail} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className="w-full h-full items-center justify-center" style={{ display: activeConv.meta?.sender?.thumbnail ? 'none' : 'flex' }}>
+                        <UserIcon className="w-5 h-5" />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{activeConv.meta?.sender?.name || activeConv.meta?.sender?.phone_number || "Desconhecido"}</h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {activeConv.meta?.sender?.phone_number || "Sem telefone"}
-                    </p>
-                  </div>
-                </button>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight">{activeConv.meta?.sender?.name || activeConv.meta?.sender?.phone_number || "Desconhecido"}</h3>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {activeConv.meta?.sender?.phone_number || "Sem telefone"}
+                      </p>
+                    </div>
+                  </button>
+                </div>
                 
                 <button 
                   onClick={() => setShowContactInfo(!showContactInfo)}
-                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-full lg:hidden"
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"
+                  title="Informações do contato"
                 >
                   <Info className="w-5 h-5" />
                 </button>
@@ -849,12 +859,14 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
           )}
         </div>
 
-        {/* Right Sidebar - Contact & Actions */}
+        {/* Right Sidebar - Contact & Actions (Overlay Drawer) */}
         {activeConvId && activeConv && showContactInfo && (
-          <div className="w-[300px] shrink-0 bg-white flex flex-col overflow-y-auto absolute lg:relative right-0 h-[calc(100vh-4rem)] z-30 shadow-2xl lg:shadow-none border-l border-gray-200 transition-transform">
-            <div className="p-4 flex items-center justify-between border-b border-gray-100 lg:hidden">
-              <h2 className="font-semibold text-gray-700">Contatos</h2>
-              <button onClick={() => setShowContactInfo(false)} className="p-1 text-gray-500 rounded-full hover:bg-gray-100"><X className="w-5 h-5"/></button>
+          <div className="w-full sm:w-[320px] bg-white flex flex-col overflow-y-auto absolute right-0 top-0 bottom-0 z-40 shadow-2xl border-l border-gray-200 animate-in slide-in-from-right duration-200">
+            <div className="p-4 flex items-center justify-between border-b border-gray-100 bg-gray-50">
+              <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wider">Informações do Contato</h2>
+              <button onClick={() => setShowContactInfo(false)} className="p-1.5 text-gray-500 rounded-full hover:bg-gray-200 transition-colors">
+                <X className="w-5 h-5"/>
+              </button>
             </div>
             
             <div className="p-6">
