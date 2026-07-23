@@ -336,8 +336,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       formData.append("private", isPrivateMsg ? "true" : "false");
       
       if (replyId) {
-        // We might not be able to easily send content_attributes via plain form data without a nested JSON string in Chatwoot
-        // Usually, in-reply-to is not perfectly supported via form-data in Chatwoot without nested objects. We'll skip for FormData or try to stringify.
+        formData.append("content_attributes[in_reply_to]", replyId.toString());
       }
 
       filesToSend.forEach(file => {
