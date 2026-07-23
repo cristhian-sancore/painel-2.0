@@ -41,20 +41,12 @@ export async function fetchMessagesAction(apiUrl: string, publicUrl: string, tok
   }
 }
 
-export async function sendMessageAction(url: string, token: string, conversationId: number, content: string, replyToId?: number) {
+export async function sendMessageAction(url: string, token: string, conversationId: number, formData: FormData) {
   try {
-    const payload: any = { content, message_type: 'outgoing', private: false };
-    if (replyToId) {
-      payload.content_attributes = { in_reply_to: replyToId };
-    }
-
     const res = await fetch(`${url}/api/v1/accounts/1/conversations/${conversationId}/messages`, {
       method: "POST",
-      headers: { 
-        "api_access_token": token,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload),
+      headers: { "api_access_token": token },
+      body: formData,
       cache: 'no-store'
     });
     if (!res.ok) throw new Error("Failed to send message");
@@ -62,6 +54,20 @@ export async function sendMessageAction(url: string, token: string, conversation
   } catch (error) {
     console.error(error);
     return false;
+  }
+}
+
+export async function fetchCannedResponsesAction(url: string, token: string) {
+  try {
+    const res = await fetch(`${url}/api/v1/accounts/1/canned_responses`, {
+      headers: { "api_access_token": token },
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error("Failed to fetch canned responses");
+    return await res.json();
+  } catch (error) {
+    console.error(error);
+    return [];
   }
 }
 

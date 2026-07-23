@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter, Paperclip, Mic, Smile, Square } from "lucide-react";
 
-import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction, fetchAgentsAction, assignAgentAction, updatePriorityAction, toggleStatusAction } from "./actions";
+import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction, fetchAgentsAction, assignAgentAction, updatePriorityAction, toggleStatusAction, fetchCannedResponsesAction } from "./actions";
 
 function CustomAudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -90,6 +90,9 @@ function CustomAudioPlayer({ src }: { src: string }) {
   );
 }
 
+// Lista simples de emojis para o popover
+const COMMON_EMOJIS = ["😀","😂","🤣","😊","😍","😘","🥰","😎","🤔","😐","🙄","😪","😷","🤒","🤢","🤮","🤧","🥵","🥶","🥴","😵","🤯","🤠","🥳","😎","🤓","🧐","😕","😟","🙁","😮","😯","😲","😳","🥺","😦","😧","😨","😰","😥","😢","😭","😱","😖","😣","😞","😓","😩","😫","🥱","😤","😡","😠","🤬","😈","👿","💀","☠️","💩","🤡","👹","👺","👻","👽","👾","🤖","😺","😸","😹","😻","😼","😽","🙀","😿","😾","🙈","🙉","🙊","💋","💌","💘","💝","💖","💗","💓","💞","💕","💟","❣️","💔","❤️","🧡","💛","💚","💙","💜","🤎","🖤","🤍","💯","💢","💥","💫","💦","💨","🕳️","💣","💬","👁️‍🗨️","🗨️","🗯️","💭","💤","👍","👎","👏","🙌","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","🦾","🦿","🦵","🦶","👂","🦻","👃","🧠","🫀","🫁","🦷","🦴","👀","👁️","👅","👄"];
+
 export default function ChatInterface({ token, url, publicUrl }: { token: string, url: string, publicUrl: string }) {
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
@@ -107,23 +110,41 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   const [filterStatus, setFilterStatus] = useState<'open'|'resolved'|'all'>('open');
   
   // Painel lateral e Agentes
-  const [showContactInfo, setShowContactInfo] = useState(true);
+  const [showContactInfo, setShowContactInfo] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  
+  // Novos estados para a caixa de input
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [cannedResponses, setCannedResponses] = useState<any[]>([]);
+  const [showMacros, setShowMacros] = useState(false);
+  const [macroFilter, setMacroFilter] = useState("");
+  const [showEmojis, setShowEmojis] = useState(false);
+  
+  // Estados do gravador de voz
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchConversations();
     fetchAgents();
+    fetchCannedResponses();
     const interval = setInterval(fetchConversations, 5000);
     return () => clearInterval(interval);
   }, [filterAssignee, filterStatus]);
 
   useEffect(() => {
     if (activeConvId) {
-      prevMessagesLength.current = 0; // reset scroll tracking on chat change
+      prevMessagesLength.current = 0;
       fetchMessages(activeConvId);
       const interval = setInterval(() => fetchMessages(activeConvId), 3000);
       return () => clearInterval(interval);
@@ -135,11 +156,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-
-    // Check if scrolled near bottom
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-    
-    // Auto scroll down if it's the first load, or if new messages arrived and user is at bottom
     if (messages.length > prevMessagesLength.current) {
       if (isAtBottom || prevMessagesLength.current === 0) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -147,13 +164,25 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     } else if (messages.length > 0 && prevMessagesLength.current === 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
-
     prevMessagesLength.current = messages.length;
   }, [messages]);
+
+  // Autoresize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 150) + "px";
+    }
+  }, [inputText]);
 
   async function fetchAgents() {
     const data = await fetchAgentsAction(url, token);
     setAgents(data);
+  }
+
+  async function fetchCannedResponses() {
+    const data = await fetchCannedResponsesAction(url, token);
+    setCannedResponses(data);
   }
 
   async function fetchConversations() {
@@ -176,15 +205,105 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     }
   }
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+        setAttachments(prev => [...prev, file]);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Erro ao acessar microfone", err);
+      alert("Não foi possível acessar o microfone.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInputText(val);
+
+    // Lógica de macros (/)
+    if (val.startsWith('/')) {
+      setShowMacros(true);
+      setMacroFilter(val.substring(1).toLowerCase());
+    } else {
+      setShowMacros(false);
+    }
+  };
+
+  const insertMacro = (content: string) => {
+    setInputText(content);
+    setShowMacros(false);
+    textareaRef.current?.focus();
+  };
+
+  const insertEmoji = (emoji: string) => {
+    setInputText(prev => prev + emoji);
+    setShowEmojis(false);
+    textareaRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+    // reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
-    if (!inputText.trim() || !activeConvId) return;
+    if ((!inputText.trim() && attachments.length === 0) || !activeConvId) return;
 
     const msgToSend = inputText;
+    const isPrivateMsg = isPrivate;
+    const filesToSend = [...attachments];
     const replyId = replyingTo?.id;
-    setInputText("");
-    setReplyingTo(null);
 
+    setInputText("");
+    setAttachments([]);
+    setReplyingTo(null);
+    setShowMacros(false);
+
+    // Optimistic UI
     const optimisticMsg = {
       id: Date.now(),
       content: msgToSend,
@@ -192,7 +311,13 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       created_at: Math.floor(Date.now() / 1000),
       sender_type: "User",
       status: "progress",
-      content_attributes: replyId ? { in_reply_to: replyId } : {}
+      private: isPrivateMsg,
+      content_attributes: replyId ? { in_reply_to: replyId } : {},
+      attachments: filesToSend.map(f => ({
+        id: Date.now() + Math.random(),
+        file_type: f.type.startsWith('image/') ? 'image' : f.type.startsWith('audio/') ? 'audio' : 'file',
+        data_url: URL.createObjectURL(f)
+      }))
     };
     setMessages(prev => [...prev, optimisticMsg]);
     
@@ -201,7 +326,21 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     }, 100);
 
     try {
-      const success = await sendMessageAction(url, token, activeConvId, msgToSend, replyId);
+      const formData = new FormData();
+      if (msgToSend) formData.append("content", msgToSend);
+      formData.append("message_type", "outgoing");
+      formData.append("private", isPrivateMsg ? "true" : "false");
+      
+      if (replyId) {
+        // We might not be able to easily send content_attributes via plain form data without a nested JSON string in Chatwoot
+        // Usually, in-reply-to is not perfectly supported via form-data in Chatwoot without nested objects. We'll skip for FormData or try to stringify.
+      }
+
+      filesToSend.forEach(file => {
+        formData.append("attachments[]", file);
+      });
+
+      const success = await sendMessageAction(url, token, activeConvId, formData);
       if (!success) throw new Error("Failed to send");
       fetchMessages(activeConvId);
       fetchConversations();
@@ -228,7 +367,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   async function handleAssignAgent(assigneeId: number) {
     if (!activeConvId) return;
     await assignAgentAction(url, token, activeConvId, assigneeId);
-    fetchConversations(); // Reload to reflect changes
+    fetchConversations();
   }
 
   async function handleUpdatePriority(priority: string) {
@@ -251,7 +390,14 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     return new Date(unixTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
   const activeConv = conversations.find(c => c.id === activeConvId);
+  const filteredMacros = cannedResponses.filter(r => r.short_code.toLowerCase().includes(macroFilter));
 
   return (
     <>
@@ -280,7 +426,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         </div>
       )}
 
-      <div className="flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => setOpenMenuMsgId(null)}>
+      <div className="flex h-[calc(100vh-4rem)] bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
         {/* Left Sidebar - Conversations */}
         <div className="w-1/4 min-w-[300px] border-r border-gray-200 flex flex-col bg-gray-50 shrink-0">
           <div className="p-4 border-b border-gray-200 bg-white">
@@ -332,7 +478,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
             ) : (
               conversations.map((conv) => {
                 const sender = conv.meta?.sender;
-                const lastMsg = conv.messages?.[0]?.content || "Sem mensagens";
+                const lastMsg = conv.messages?.[0]?.content || (conv.messages?.[0]?.attachments?.length > 0 ? "Anexo" : "Sem mensagens");
                 const time = formatTime(conv.last_activity_at);
                 
                 return (
@@ -385,7 +531,10 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
             <>
               {/* Header */}
               <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10 shrink-0">
-                <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setShowContactInfo(!showContactInfo)}
+                  className="flex items-center gap-4 hover:bg-gray-50 p-2 -ml-2 rounded-lg transition-colors text-left"
+                >
                   <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
                     {activeConv.meta?.sender?.thumbnail ? (
                       <img 
@@ -410,9 +559,8 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                       <Phone className="w-3 h-3" /> {activeConv.meta?.sender?.phone_number || "Sem telefone"}
                     </p>
                   </div>
-                </div>
+                </button>
                 
-                {/* Mobile Info Toggle */}
                 <button 
                   onClick={() => setShowContactInfo(!showContactInfo)}
                   className="p-2 text-gray-500 hover:bg-gray-100 rounded-full lg:hidden"
@@ -426,6 +574,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                 {messages.map((msg) => {
                   const isOutgoing = msg.message_type === 1;
                   const isActivity = msg.message_type === 3 || msg.message_type === 2;
+                  const isPrivateMsg = msg.private;
 
                   if (isActivity) {
                     return (
@@ -442,7 +591,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
 
                   return (
                     <div key={msg.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`group max-w-[80%] md:max-w-[70%] p-3 rounded-lg shadow-sm relative ${isOutgoing ? 'bg-[#d9fdd3] text-gray-900 rounded-tr-none' : 'bg-white text-gray-900 rounded-tl-none'}`}>
+                      <div className={`group max-w-[80%] md:max-w-[70%] p-3 rounded-lg shadow-sm relative ${isPrivateMsg ? 'bg-[#fff5c4] text-yellow-900' : isOutgoing ? 'bg-[#d9fdd3] text-gray-900' : 'bg-white text-gray-900'} ${isOutgoing ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
                         {/* Dropdown Menu Toggle */}
                         <div className={`absolute top-1 ${isOutgoing ? 'left-[-35px]' : 'right-[-35px]'} opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
                           <button 
@@ -470,6 +619,12 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                             </div>
                           )}
                         </div>
+
+                        {isPrivateMsg && (
+                          <div className="text-xs font-bold text-yellow-600 mb-1 flex items-center gap-1 uppercase">
+                            🔒 Nota Privada
+                          </div>
+                        )}
 
                         {/* Quoted Message Preview */}
                         {quotedMsg && (
@@ -512,9 +667,9 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                           </div>
                         )}
                         {msg.content && <p className="text-[15px] whitespace-pre-wrap break-words">{msg.content}</p>}
-                        <span className="text-[10px] text-gray-500 block text-right mt-1 flex items-center justify-end gap-1">
+                        <span className="text-[10px] opacity-60 block text-right mt-1 flex items-center justify-end gap-1">
                           {formatTime(msg.created_at)}
-                          {isOutgoing && (
+                          {isOutgoing && !isPrivateMsg && (
                             msg.status === 'read' ? <CheckCheck className="w-3 h-3 text-blue-500" /> :
                             msg.status === 'delivered' ? <CheckCheck className="w-3 h-3 text-gray-500" /> :
                             msg.status === 'progress' || msg.status === 'failed' ? <Clock className="w-3 h-3 text-gray-400" /> :
@@ -528,40 +683,160 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="bg-[#f0f2f5] border-t border-gray-200 flex flex-col">
+              {/* Input Area (New Rich Input) */}
+              <div className={`border-t border-gray-200 flex flex-col p-4 pt-2 transition-colors ${isPrivate ? 'bg-[#fff9e6]' : 'bg-[#f0f2f5]'}`}>
+                
+                {/* Tabs */}
+                <div className="flex items-center gap-2 mb-2">
+                  <button 
+                    onClick={() => setIsPrivate(false)}
+                    className={`px-4 py-1.5 rounded-t-lg text-sm font-medium transition-colors ${!isPrivate ? 'bg-white text-gray-800 shadow-sm border border-gray-200 border-b-0 relative z-10 top-[1px]' : 'text-gray-500 hover:bg-black/5'}`}
+                  >
+                    Responder
+                  </button>
+                  <button 
+                    onClick={() => setIsPrivate(true)}
+                    className={`px-4 py-1.5 rounded-t-lg text-sm font-medium transition-colors flex items-center gap-1 ${isPrivate ? 'bg-[#fff5c4] text-yellow-800 shadow-sm border border-yellow-200 border-b-0 relative z-10 top-[1px]' : 'text-gray-500 hover:bg-black/5'}`}
+                  >
+                    🔒 Mensagem Privada
+                  </button>
+                </div>
+
                 {replyingTo && (
-                  <div className="px-4 py-3 bg-[#f0f2f5] border-b border-gray-200 flex items-center justify-between">
+                  <div className="px-4 py-2 bg-white/50 border border-gray-200 rounded-t-lg flex items-center justify-between mb-0">
                     <div className="bg-black/5 p-2 border-l-4 border-blue-500 rounded-md flex-1 min-w-0 mr-4">
                       <p className="font-semibold text-blue-600 text-xs mb-0.5">
                         Respondendo a {replyingTo.message_type === 1 ? "Você" : activeConv.meta?.sender?.name || "Contato"}
                       </p>
                       <p className="text-gray-600 text-sm truncate">{replyingTo.content || "Anexo"}</p>
                     </div>
-                    <button onClick={() => setReplyingTo(null)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full transition-colors shrink-0">
-                      <X className="w-5 h-5" />
+                    <button onClick={() => setReplyingTo(null)} className="p-1 text-gray-500 hover:bg-gray-200 rounded-full transition-colors shrink-0">
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 )}
                 
-                <div className="p-4">
-                  <form onSubmit={sendMessage} className="flex gap-2">
-                    <input 
-                      type="text" 
+                <form onSubmit={sendMessage} className={`flex flex-col border border-gray-200 shadow-sm rounded-lg overflow-visible ${isPrivate ? 'bg-[#fff5c4]' : 'bg-white'}`}>
+                  
+                  {/* Macros Popover */}
+                  {showMacros && filteredMacros.length > 0 && (
+                    <div className="absolute bottom-[100px] left-6 w-80 max-h-64 overflow-y-auto bg-white border border-gray-200 shadow-2xl rounded-lg z-50">
+                      <div className="px-3 py-2 text-xs font-bold text-gray-500 bg-gray-50 border-b border-gray-100 uppercase tracking-wider">
+                        Respostas Prontas
+                      </div>
+                      {filteredMacros.map(macro => (
+                        <button 
+                          key={macro.id}
+                          type="button"
+                          onClick={() => insertMacro(macro.content)}
+                          className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-50 last:border-0 transition-colors"
+                        >
+                          <p className="text-sm font-semibold text-blue-600 mb-0.5">/{macro.short_code}</p>
+                          <p className="text-xs text-gray-600 truncate">{macro.content}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Attachment Previews */}
+                  {attachments.length > 0 && (
+                    <div className="flex gap-2 p-3 pb-0 overflow-x-auto">
+                      {attachments.map((file, i) => (
+                        <div key={i} className="relative bg-black/5 rounded-md p-2 pr-8 flex items-center gap-2 max-w-[200px] border border-gray-200">
+                          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                          <span className="text-xs text-gray-700 truncate">{file.name}</span>
+                          <button type="button" onClick={() => removeAttachment(i)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded-full text-gray-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Textarea */}
+                  <div className="px-3 pt-3 pb-1">
+                    <textarea 
+                      ref={textareaRef}
                       value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder="Digite uma mensagem..."
-                      className="flex-1 px-4 py-3 rounded-full border-none focus:ring-0 outline-none text-gray-800 shadow-sm bg-white"
+                      onChange={handleInputChange}
+                      onKeyDown={handleInputKeyDown}
+                      placeholder={isPrivate ? "Digite uma nota privada..." : "Shift + enter para nova linha. Digite '/' para selecionar uma Resposta Pronta."}
+                      className="w-full bg-transparent border-none focus:ring-0 outline-none text-gray-800 resize-none min-h-[44px] max-h-[150px] text-[15px] leading-relaxed"
+                      rows={1}
                     />
+                  </div>
+
+                  {/* Toolbar */}
+                  <div className="flex items-center justify-between p-2 pt-1 border-t border-black/5">
+                    <div className="flex items-center gap-1 relative">
+                      
+                      {/* Emoji Picker Toggle */}
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowEmojis(!showEmojis); }}
+                        className="p-2 text-gray-500 hover:bg-black/5 rounded-md transition-colors"
+                        title="Emojis"
+                      >
+                        <Smile className="w-5 h-5" />
+                      </button>
+
+                      {/* Emojis Popover */}
+                      {showEmojis && (
+                        <div className="absolute bottom-full left-0 mb-2 w-64 h-64 overflow-y-auto bg-white border border-gray-200 shadow-xl rounded-lg p-3 grid grid-cols-6 gap-2 z-50" onClick={(e)=>e.stopPropagation()}>
+                          {COMMON_EMOJIS.map(em => (
+                            <button key={em} type="button" onClick={() => insertEmoji(em)} className="text-xl hover:bg-gray-100 rounded p-1">{em}</button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Attachment Button */}
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden"
+                        multiple
+                        onChange={handleFileSelect}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 text-gray-500 hover:bg-black/5 rounded-md transition-colors"
+                        title="Anexar Arquivo"
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </button>
+
+                      {/* Audio Button */}
+                      {isRecording ? (
+                        <div className="flex items-center gap-2 ml-2 bg-red-50 text-red-600 px-3 py-1 rounded-full animate-pulse border border-red-100">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          <span className="text-sm font-semibold w-12">{formatRecordingTime(recordingTime)}</span>
+                          <button type="button" onClick={stopRecording} className="p-1 hover:bg-red-200 rounded-full ml-1 text-red-700">
+                            <Square className="w-4 h-4 fill-current" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          type="button"
+                          onClick={startRecording}
+                          className="p-2 text-gray-500 hover:bg-black/5 rounded-md transition-colors"
+                          title="Gravar Áudio"
+                        >
+                          <Mic className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                    
                     <button 
                       type="submit"
-                      disabled={!inputText.trim()}
-                      className="w-12 h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm shrink-0"
+                      disabled={(!inputText.trim() && attachments.length === 0) || isRecording}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
                     >
-                      <Send className="w-5 h-5 ml-1" />
+                      Enviar (↵)
                     </button>
-                  </form>
-                </div>
+                  </div>
+
+                </form>
               </div>
             </>
           ) : (
