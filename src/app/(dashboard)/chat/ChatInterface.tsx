@@ -278,11 +278,15 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      setAttachments(prev => [...prev, ...fileArray]);
     }
-    // reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    // reset input safely after processing
+    setTimeout(() => {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }, 100);
   };
 
   const removeAttachment = (index: number) => {
@@ -426,7 +430,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         </div>
       )}
 
-      <div className="relative flex h-full flex-1 w-full bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
+      <div className="relative flex h-[calc(100vh-7.5rem)] w-full bg-white overflow-hidden rounded-t-lg shadow-sm border border-gray-200" onClick={() => {setOpenMenuMsgId(null); setShowEmojis(false);}}>
         {/* Left Sidebar - Conversations */}
         <div className={`w-full md:w-1/3 lg:w-1/4 md:min-w-[280px] border-r border-gray-200 flex flex-col bg-gray-50 shrink-0 ${activeConvId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-gray-200 bg-white">
