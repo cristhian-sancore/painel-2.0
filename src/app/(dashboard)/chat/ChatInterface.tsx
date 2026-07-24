@@ -412,8 +412,7 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       const ticketId = res.data?.id;
       if (ticketId) {
         const formData = new FormData();
-        formData.append("content", `Chamado #${ticketId} criado com sucesso no GLPI.`);
-        formData.append("private", "true");
+        formData.append("content", `Chamado #${ticketId} criado com sucesso no GLPI. Daremos retorno por aqui!`);
         await sendMessageAction(url, token, activeConv.id, formData);
         fetchMessages(activeConv.id);
       } else {

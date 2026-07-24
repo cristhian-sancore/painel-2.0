@@ -12,8 +12,11 @@ export default function GlpiPage() {
 
   // Modal para criar chamado
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
-  const [newTicket, setNewTicket] = useState({ title: "", description: "" });
+  const [newTicket, setNewTicket] = useState({ title: "", description: "", clientInfo: "" });
   const [creating, setCreating] = useState(false);
+
+  // Modal de Detalhes
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
 
   useEffect(() => {
     loadTickets();
@@ -42,14 +45,14 @@ export default function GlpiPage() {
     setCreating(true);
     setError(null);
     
-    const res = await createTicketAction(newTicket.title, newTicket.description, "");
+    const res = await createTicketAction(newTicket.title, newTicket.description, newTicket.clientInfo);
     
     if (res.error) {
       setError(res.error);
     } else {
       setSuccess("Chamado criado com sucesso!");
       setIsNewTicketOpen(false);
-      setNewTicket({ title: "", description: "" });
+      setNewTicket({ title: "", description: "", clientInfo: "" });
       loadTickets();
       setTimeout(() => setSuccess(null), 3000);
     }
@@ -149,7 +152,10 @@ export default function GlpiPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 ml-auto">
+                      <button 
+                        onClick={() => setSelectedTicket(ticket)}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 ml-auto"
+                      >
                         <FileText className="w-4 h-4" /> Detalhes
                       </button>
                     </td>
@@ -212,6 +218,17 @@ export default function GlpiPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                   ></textarea>
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">E-mail ou Telefone do Cliente (Opcional)</label>
+                  <input
+                    type="text"
+                    value={newTicket.clientInfo}
+                    onChange={(e) => setNewTicket({...newTicket, clientInfo: e.target.value})}
+                    placeholder="Ex: cliente@email.com ou 11999999999"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Isso tentará vincular o chamado a um usuário existente no GLPI.</p>
+                </div>
                 <div className="pt-2 flex justify-end gap-3">
                   <button
                     type="button"
@@ -230,6 +247,58 @@ export default function GlpiPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalhes do Chamado */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
+              <div className="pr-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-mono text-gray-500 bg-white px-2 py-1 rounded text-sm border border-gray-200">#{selectedTicket.id}</span>
+                  {getStatusBadge(selectedTicket.status)}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                  {selectedTicket.name}
+                </h2>
+              </div>
+              <button onClick={() => setSelectedTicket(null)} className="text-gray-400 hover:text-gray-700 bg-white rounded-full p-1 border border-gray-200 shadow-sm">
+                &times;
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <div className="mb-6">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> Descrição do Problema
+                </h3>
+                <div 
+                  className="prose prose-sm max-w-none text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100"
+                  dangerouslySetInnerHTML={{ __html: selectedTicket.content || "Sem descrição." }}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm bg-white p-4 rounded-xl border border-gray-100">
+                <div>
+                  <span className="block text-gray-500 mb-1">Data de Abertura</span>
+                  <span className="font-medium text-gray-900">{new Date(selectedTicket.date_creation).toLocaleString('pt-BR')}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 mb-1">Última Atualização</span>
+                  <span className="font-medium text-gray-900">{new Date(selectedTicket.date_mod).toLocaleString('pt-BR')}</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setSelectedTicket(null)}
+                className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors"
+              >
+                Fechar Detalhes
+              </button>
             </div>
           </div>
         </div>
