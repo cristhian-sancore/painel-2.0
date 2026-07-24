@@ -411,7 +411,10 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       // Envia uma mensagem interna no chat informando o número do chamado
       const ticketId = res.data?.id;
       if (ticketId) {
-        await sendMessageAction(url, token, activeConv.id, `Chamado #${ticketId} criado com sucesso no GLPI.`, false, true);
+        const formData = new FormData();
+        formData.append("content", `Chamado #${ticketId} criado com sucesso no GLPI.`);
+        formData.append("private", "true");
+        await sendMessageAction(url, token, activeConv.id, formData);
         fetchMessages(activeConv.id);
       } else {
         alert("Chamado criado com sucesso!");
