@@ -151,3 +151,35 @@ export async function fetchTeamsAction() {
     return { error: err.message };
   }
 }
+
+export async function reconnectInstanceAction(instanceName: string) {
+  try {
+    const evo = await EvolutionClient.init();
+    
+    // 1. Logout existing session
+    try {
+      await evo.logoutInstance(instanceName);
+    } catch (e: any) {
+      console.log(`Logout failed for ${instanceName}, might already be disconnected. Proceeding to get QR.`);
+    }
+
+    // 2. Fetch new QR code
+    const data = await evo.getQrCode(instanceName);
+    return { success: true, base64: data.base64 || data.qrcode?.base64, message: "Sessão desconectada. Leia o novo QR Code." };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function resyncChatwootAction(instanceName: string) {
+  try {
+    const evo = await EvolutionClient.init();
+    const chatwoot = await ChatwootClient.init();
+    const accountId = await chatwoot.setAccountId();
+    
+    await evo.connectToChatwoot(instanceName, accountId);
+    return { success: true, message: "Integração com Chatwoot sincronizada com sucesso!" };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
