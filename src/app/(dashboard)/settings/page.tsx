@@ -15,7 +15,8 @@ export default function SettingsPage() {
     chatwoot_token: "",
     chatwoot_platform_token: "",
     glpi_url: "",
-    glpi_token: "",
+    glpi_app_token: "",
+    glpi_user_token: "",
     proxmox_url: "",
     proxmox_token: "",
   });
@@ -227,13 +228,24 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">App Token / User Token</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">App Token</label>
               <input
                 type="password"
-                name="glpi_token"
-                value={settings.glpi_token}
+                name="glpi_app_token"
+                value={settings.glpi_app_token || ""}
                 onChange={handleChange}
-                placeholder="Seus tokens do GLPI"
+                placeholder="Ex: Sancore@2404"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">User Token</label>
+              <input
+                type="password"
+                name="glpi_user_token"
+                value={settings.glpi_user_token || ""}
+                onChange={handleChange}
+                placeholder="Ex: X2YDSYheWg..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter, Paperclip, Mic, Smile, Square, ChevronLeft } from "lucide-react";
+import { Send, User as UserIcon, Clock, Phone, AlertCircle, MessageSquare, Check, CheckCheck, FileText, Image as ImageIcon, Play, Pause, Download, ChevronDown, Reply, Trash2, X, ZoomIn, ZoomOut, Info, Mail, Hash, Briefcase, Filter, Paperclip, Mic, Smile, Square, ChevronLeft, Ticket } from "lucide-react";
 
 import { fetchConversationsAction, fetchMessagesAction, sendMessageAction, deleteMessageAction, fetchAgentsAction, assignAgentAction, updatePriorityAction, toggleStatusAction, fetchCannedResponsesAction } from "./actions";
+import { createTicketAction } from "../glpi/actions";
 
 function CustomAudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -104,6 +105,11 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [openMenuMsgId, setOpenMenuMsgId] = useState<number | null>(null);
+
+  // Modal para Criar Chamado GLPI
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [newTicket, setNewTicket] = useState({ title: "", description: "" });
+  const [creatingTicket, setCreatingTicket] = useState(false);
 
   // Filtros
   const [filterAssignee, setFilterAssignee] = useState<'me'|'unassigned'|'all'>('me');
@@ -386,6 +392,32 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     if (newStatus === 'resolved' && filterStatus === 'open') {
       setActiveConvId(null);
     }
+  }
+
+  async function handleCreateTicket(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeConv || !newTicket.title || !newTicket.description) return;
+    
+    setCreatingTicket(true);
+    const emailOrPhone = activeConv.meta?.sender?.email || activeConv.meta?.sender?.phone_number || "";
+    const res = await createTicketAction(newTicket.title, newTicket.description, emailOrPhone);
+    
+    if (res.error) {
+      alert("Erro ao criar chamado: " + res.error);
+    } else {
+      setIsTicketModalOpen(false);
+      setNewTicket({ title: "", description: "" });
+      
+      // Envia uma mensagem interna no chat informando o número do chamado
+      const ticketId = res.data?.id;
+      if (ticketId) {
+        await sendMessageAction(url, token, activeConv.id, `Chamado #${ticketId} criado com sucesso no GLPI.`, false, true);
+        fetchMessages(activeConv.id);
+      } else {
+        alert("Chamado criado com sucesso!");
+      }
+    }
+    setCreatingTicket(false);
   }
 
   function formatTime(unixTimestamp: number) {
@@ -917,6 +949,16 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Briefcase className="w-4 h-4" /> Ações da conversa
               </h3>
+
+              <div className="mb-4">
+                <button
+                  onClick={() => setIsTicketModalOpen(true)}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  <Ticket className="w-4 h-4" />
+                  Abrir Chamado (GLPI)
+                </button>
+              </div>
               
               <div className="space-y-4">
                 {/* Agent Assignment */}
@@ -973,7 +1015,67 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
             </div>
           </div>
         )}
+        {/* Right Sidebar */}
       </div>
+
+      {/* Modal Novo Chamado GLPI */}
+      {isTicketModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-purple-600" />
+                Criar Chamado para {activeConv?.meta?.sender?.name}
+              </h2>
+              <button onClick={() => setIsTicketModalOpen(false)} className="text-gray-400 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={handleCreateTicket} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Título</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTicket.title}
+                    onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
+                    placeholder="Resumo do problema..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Descrição</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={newTicket.description}
+                    onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
+                    placeholder="Detalhe o problema..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
+                  ></textarea>
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsTicketModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingTicket}
+                    className="px-5 py-2.5 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {creatingTicket ? "Criando..." : "Salvar Chamado"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
