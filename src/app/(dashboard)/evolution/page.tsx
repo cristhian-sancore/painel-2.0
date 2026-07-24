@@ -210,7 +210,7 @@ export default function EvolutionPage() {
       )}
 
       {/* Instâncias Grid/List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Server className="w-5 h-5 text-gray-500" />
@@ -226,7 +226,7 @@ export default function EvolutionPage() {
           </button>
         </div>
         
-        <div className="overflow-x-auto min-h-[300px]">
+        <div className="overflow-visible min-h-[300px]">
           <table className="w-full text-left text-sm text-gray-600">
             <thead className="bg-white border-b border-gray-100 text-gray-400 uppercase tracking-wider text-xs font-semibold">
               <tr>
