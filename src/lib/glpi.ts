@@ -206,4 +206,49 @@ export class GlpiClient {
 
     return await res.json();
   }
+
+  // Update Ticket Full (Edit fields)
+  public async updateTicket(ticketId: number, data: any) {
+    if (!this.sessionToken) await this.initSession();
+
+    // Map the payload dynamically based on data passed
+    const payload = {
+      input: {
+        id: ticketId,
+        items_id: ticketId,
+        ...data
+      }
+    };
+
+    const res = await fetch(`${this.url}/Ticket/${ticketId}`, {
+      method: "PUT",
+      headers: this.headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to update ticket: ${errorText}`);
+    }
+
+    return await res.json();
+  }
+
+  // Delete Ticket
+  public async deleteTicket(ticketId: number, forcePurge: boolean = true) {
+    if (!this.sessionToken) await this.initSession();
+
+    const res = await fetch(`${this.url}/Ticket/${ticketId}${forcePurge ? "?force_purge=true" : ""}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to delete ticket: ${errorText}`);
+    }
+
+    // Usually DELETE returns empty or [true]
+    return { success: true };
+  }
 }

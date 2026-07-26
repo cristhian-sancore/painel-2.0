@@ -169,7 +169,9 @@ export async function createUserAction(formData: FormData) {
         await prisma.user.update({
            where: { id: newUser.id },
            data: {
+             // @ts-ignore
              chatwootId: cwUserId,
+             // @ts-ignore
              chatwootAccessToken: chatwootAccessToken
            }
         });

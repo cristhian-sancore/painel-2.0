@@ -61,10 +61,31 @@ export async function addTicketFollowupAction(ticketId: number, content: string)
 export async function solveTicketAction(ticketId: number) {
   try {
     const glpi = await GlpiClient.init();
-    // 5 = Solved
-    const res = await glpi.updateTicketStatus(ticketId, 5);
+    await glpi.updateTicketStatus(ticketId, 5); // 5 = solved
     await glpi.killSession();
-    return { success: true, data: res };
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function updateTicketAction(ticketId: number, data: any) {
+  try {
+    const glpi = await GlpiClient.init();
+    await glpi.updateTicket(ticketId, data);
+    await glpi.killSession();
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deleteTicketAction(ticketId: number) {
+  try {
+    const glpi = await GlpiClient.init();
+    await glpi.deleteTicket(ticketId, true); // true = force purge
+    await glpi.killSession();
+    return { success: true };
   } catch (err: any) {
     return { error: err.message };
   }
