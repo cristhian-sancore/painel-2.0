@@ -195,3 +195,26 @@ export async function resyncChatwootAction(instanceName: string) {
     return { error: err.message };
   }
 }
+export async function updateInstanceSettingsAction(instanceName: string, settings: any) {
+  try {
+    const evo = await EvolutionClient.init();
+    await evo.setInstanceSettings(instanceName, settings);
+    return { success: true, message: "Configurações de comportamento atualizadas com sucesso" };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function updateChatwootSettingsAction(instanceName: string, overrides: any) {
+  try {
+    const evo = await EvolutionClient.init();
+    const chatwoot = await ChatwootClient.init();
+    const accountId = await chatwoot.setAccountId();
+    
+    // Conecta passando os overrides desejados
+    await evo.connectToChatwoot(instanceName, accountId, overrides);
+    return { success: true, message: "Integração Chatwoot atualizada com sucesso" };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}

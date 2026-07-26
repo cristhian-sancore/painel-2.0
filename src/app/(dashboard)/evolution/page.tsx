@@ -8,7 +8,9 @@ import {
   getQrCodeAction, 
   fetchTeamsAction,
   reconnectInstanceAction,
-  resyncChatwootAction
+  resyncChatwootAction,
+  updateInstanceSettingsAction,
+  updateChatwootSettingsAction
 } from "./actions";
 import { 
   QrCode, Smartphone, Plus, CheckCircle2, AlertCircle, 
@@ -30,6 +32,10 @@ export default function EvolutionPage() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [cwSettings, setCwSettings] = useState({ reopenConversation: true, importContacts: true, importMessages: true });
+  const [evoSettings, setEvoSettings] = useState({ groupsIgnore: true, readMessages: false, readStatus: false, rejectCall: false });
+  const [activeTab, setActiveTab] = useState("comportamento");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isReconnectModalOpen, setIsReconnectModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   
@@ -140,12 +146,29 @@ export default function EvolutionPage() {
     setLoadingData(true);
     const res = await resyncChatwootAction(instanceName);
     if (res.success) {
-      setSuccessMsg(res.message);
+      setSuccessMsg(`Instância sincronizada com sucesso!`);
       loadData();
     } else {
-      setError(res.error || "Erro ao ressincronizar.");
+      setError(res.error || "Erro ao sincronizar instância");
       setLoadingData(false);
     }
+  }
+
+  async function handleSaveSettings() {
+    if (!selectedInstance) return;
+    setIsSavingSettings(true);
+    
+    // Save Evo Settings
+    await updateInstanceSettingsAction(selectedInstance, evoSettings);
+    
+    // Save Chatwoot Settings
+    await updateChatwootSettingsAction(selectedInstance, cwSettings);
+    
+    setSuccessMsg("Configurações atualizadas!");
+    setTimeout(() => setSuccessMsg(null), 3000);
+    setIsSavingSettings(false);
+    loadData();
+    closeModals();
   }
 
   function closeModals() {
@@ -293,7 +316,26 @@ export default function EvolutionPage() {
                             <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }}></div>
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-40 py-1 animate-in fade-in zoom-in-95 duration-100">
                               <button 
-                                onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsEditModalOpen(true); setOpenDropdown(null); }}
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setSelectedInstance(instanceName); 
+                                  const current = instances.find((i: any) => i.name === instanceName);
+                                  if (current) {
+                                    setCwSettings({
+                                      reopenConversation: current.Chatwoot?.reopenConversation ?? true,
+                                      importContacts: current.Chatwoot?.importContacts ?? true,
+                                      importMessages: current.Chatwoot?.importMessages ?? true,
+                                    });
+                                    setEvoSettings({
+                                      groupsIgnore: current.Setting?.groupsIgnore ?? true,
+                                      readMessages: current.Setting?.readMessages ?? false,
+                                      readStatus: current.Setting?.readStatus ?? false,
+                                      rejectCall: current.Setting?.rejectCall ?? false,
+                                    });
+                                  }
+                                  setIsEditModalOpen(true); 
+                                  setOpenDropdown(null); 
+                                }}
                                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2 transition-colors"
                               >
                                 <Settings className="w-4 h-4 text-gray-400" /> Configurações
@@ -501,8 +543,8 @@ export default function EvolutionPage() {
       {/* Modal Edit/Config */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <Settings className="w-5 h-5 text-gray-400" />
                 Configurações da Instância
@@ -511,29 +553,146 @@ export default function EvolutionPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="mb-6">
-                <h4 className="text-sm font-bold text-gray-900 mb-1">Instância</h4>
-                <p className="text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 font-mono text-sm">{selectedInstance}</p>
+            
+            <div className="p-5 border-b border-gray-100 flex gap-4 shrink-0 bg-gray-50/50">
+              <button 
+                onClick={() => setActiveTab("comportamento")}
+                className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTab === "comportamento" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+              >
+                Comportamento
+              </button>
+              <button 
+                onClick={() => setActiveTab("integracao")}
+                className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTab === "integracao" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+              >
+                Integração (Chatwoot)
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 bg-white">
+              <div className="mb-6 flex items-center justify-between bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-100">
+                <span className="text-sm font-bold text-gray-700">Instância:</span>
+                <span className="text-gray-900 font-mono text-sm font-bold">{selectedInstance}</span>
               </div>
 
-              <div className="space-y-4">
-                <div className="p-4 border border-blue-100 bg-blue-50/50 rounded-xl">
-                  <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-blue-500" /> 
-                    Sincronização Chatwoot
-                  </h4>
-                  <p className="text-xs text-gray-600 mb-4">
-                    Se as mensagens pararam de chegar no painel, você pode forçar a reintegração (isso atualiza a URL do webhook e restabelece a conexão).
-                  </p>
-                  <button 
-                    onClick={() => selectedInstance && handleResync(selectedInstance)}
-                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm shadow-sm"
-                  >
-                    Ressincronizar Integração
-                  </button>
+              {activeTab === "comportamento" && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-gray-900 mb-2 border-b pb-2">Opções de Comportamento</h4>
+                  
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Ignorar Grupos</div>
+                      <div className="text-xs text-gray-500">Ignorar todas as mensagens de grupos</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={evoSettings.groupsIgnore} onChange={(e) => setEvoSettings({...evoSettings, groupsIgnore: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Visualizar Mensagens</div>
+                      <div className="text-xs text-gray-500">Marcar todas as mensagens como lidas</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={evoSettings.readMessages} onChange={(e) => setEvoSettings({...evoSettings, readMessages: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Visualizar Status</div>
+                      <div className="text-xs text-gray-500">Marcar todos os status como visualizados</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={evoSettings.readStatus} onChange={(e) => setEvoSettings({...evoSettings, readStatus: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Rejeitar Chamadas</div>
+                      <div className="text-xs text-gray-500">Rejeitar todas as chamadas automaticamente</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={evoSettings.rejectCall} onChange={(e) => setEvoSettings({...evoSettings, rejectCall: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
                 </div>
-              </div>
+              )}
+
+              {activeTab === "integracao" && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-gray-900 mb-2 border-b pb-2">Chatwoot</h4>
+                  
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Reabrir Conversa</div>
+                      <div className="text-xs text-gray-500">Reabrir a conversa ao receber uma mensagem</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={cwSettings.reopenConversation} onChange={(e) => setCwSettings({...cwSettings, reopenConversation: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Importar Contatos</div>
+                      <div className="text-xs text-gray-500">Importar contatos da agenda do WhatsApp ao conectar</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={cwSettings.importContacts} onChange={(e) => setCwSettings({...cwSettings, importContacts: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Importar Mensagens</div>
+                      <div className="text-xs text-gray-500">Importar histórico recente (3 dias) ao conectar</div>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={cwSettings.importMessages} onChange={(e) => setCwSettings({...cwSettings, importMessages: e.target.checked})} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                  </label>
+                  
+                  <div className="mt-6 p-4 border border-blue-100 bg-blue-50/50 rounded-xl">
+                    <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-blue-500" /> 
+                      Sincronização Chatwoot
+                    </h4>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Se as mensagens pararam de chegar no painel, você pode forçar a reintegração.
+                    </p>
+                    <button 
+                      onClick={() => selectedInstance && handleResync(selectedInstance)}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm shadow-sm"
+                    >
+                      Forçar Ressincronização
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 shrink-0">
+              <button onClick={closeModals} className="px-5 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-white transition-colors">
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveSettings}
+                disabled={isSavingSettings}
+                className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+              >
+                {isSavingSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Salvar Alterações
+              </button>
             </div>
           </div>
         </div>
