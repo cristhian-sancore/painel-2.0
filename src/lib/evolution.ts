@@ -71,7 +71,7 @@ export class EvolutionClient {
   }
 
   // 3. Connect to Chatwoot
-  public async connectToChatwoot(instanceName: string, accountId: number) {
+  public async connectToChatwoot(instanceName: string, accountId: number, overrides: any = {}) {
     const chatwootUrlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const chatwootTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
 
@@ -85,23 +85,26 @@ export class EvolutionClient {
     // Use configured Chatwoot URL or default
     const internalChatwootUrl = chatwootUrl || "https://chatwoot2.cristhiansancore.com.br";
 
+    const payload = {
+      enabled: true,
+      accountId: String(accountId),
+      token: chatwootToken,
+      url: internalChatwootUrl,
+      signMsg: true,
+      reopenConversation: true,
+      conversationPending: false,
+      nameInbox: `WhatsApp - ${instanceName}`,
+      mergeBrazilContacts: true,
+      importContacts: true,
+      importMessages: true,
+      daysLimitImportMessages: 3,
+      ...overrides
+    };
+
     const res = await fetch(`${this.url}/chatwoot/set/${instanceName}`, {
       method: "POST",
       headers: this.headers,
-      body: JSON.stringify({
-        enabled: true,
-        accountId: String(accountId),
-        token: chatwootToken,
-        url: internalChatwootUrl,
-        signMsg: true,
-        reopenConversation: true,
-        conversationPending: false,
-        nameInbox: `WhatsApp - ${instanceName}`,
-        mergeBrazilContacts: true,
-        importContacts: true,
-        importMessages: true,
-        daysLimitImportMessages: 3
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
