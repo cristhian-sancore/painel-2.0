@@ -76,7 +76,6 @@ export class GlpiClient {
   public async findUser(searchTerm: string) {
     if (!this.sessionToken) await this.initSession();
 
-    // In GLPI, we can search using standard criteria
     const searchUrl = new URL(`${this.url}/search/User`);
     searchUrl.searchParams.append("criteria[0][field]", "5"); // 5 is usually email in GLPI search
     searchUrl.searchParams.append("criteria[0][searchtype]", "contains");
@@ -90,6 +89,64 @@ export class GlpiClient {
     if (!res.ok) return null;
     const data = await res.json();
     return data.data && data.data.length > 0 ? data.data[0] : null;
+  }
+
+  public async createUser(name: string, email: string) {
+    if (!this.sessionToken) await this.initSession();
+
+    // In GLPI, name is often the login username. We'll use email as username if name isn't suitable, or just use name.
+    const res = await fetch(`${this.url}/User`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        input: {
+          name: email, // use email as login
+          realname: name,
+          _useremails: [email],
+          is_active: 1
+        }
+      })
+    });
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.id || null;
+  }
+
+  public async findGroup(name: string) {
+    if (!this.sessionToken) await this.initSession();
+
+    const searchUrl = new URL(`${this.url}/search/Group`);
+    searchUrl.searchParams.append("criteria[0][field]", "14"); // 14 is Name in Group search
+    searchUrl.searchParams.append("criteria[0][searchtype]", "equals");
+    searchUrl.searchParams.append("criteria[0][value]", name);
+
+    const res = await fetch(searchUrl.toString(), {
+      method: "GET",
+      headers: this.headers,
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data && data.data.length > 0 ? data.data[0] : null;
+  }
+
+  public async createGroup(name: string) {
+    if (!this.sessionToken) await this.initSession();
+
+    const res = await fetch(`${this.url}/Group`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        input: {
+          name: name,
+        }
+      })
+    });
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.id || null;
   }
 
   // Get active tickets

@@ -13,6 +13,7 @@ model AccessGroup {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   users       User[]
+  glpiGroupId Int?
 }
 
 model User {
@@ -27,6 +28,7 @@ model User {
   chatwootAccessToken String?
   accessGroupId String?
   accessGroup   AccessGroup? @relation(fields: [accessGroupId], references: [id], onDelete: SetNull)
+  glpiUserId    Int?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }

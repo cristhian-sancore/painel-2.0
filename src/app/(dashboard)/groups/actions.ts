@@ -44,6 +44,30 @@ export async function createGroupAction(formData: FormData) {
       }
     }
 
+    // GLPI Sync for Group
+    try {
+      const { GlpiClient } = require("@/lib/glpi");
+      const glpi = await GlpiClient.init();
+      console.log("[GLPI Sync] Sincronizando grupo:", group.name);
+      let glpiGroupId = null;
+      let glpiGroup = await glpi.findGroup(group.name);
+      if (!glpiGroup) {
+        console.log("[GLPI Sync] Criando novo grupo GLPI...");
+        glpiGroupId = await glpi.createGroup(group.name);
+      } else {
+        glpiGroupId = glpiGroup.id;
+      }
+      if (glpiGroupId) {
+        await prisma.accessGroup.update({
+          where: { id: group.id },
+          data: { glpiGroupId }
+        });
+        console.log(`[GLPI Sync] Grupo sincronizado com sucesso. GLPI ID: ${glpiGroupId}`);
+      }
+    } catch (glpiErr: any) {
+      console.error("[GLPI Sync] Falha ao sincronizar grupo com o GLPI:", glpiErr.message);
+    }
+
     revalidatePath("/groups");
     return { success: true, data: group, message: "Grupo criado com sucesso!" + chatwootMessage };
   } catch (error: any) {

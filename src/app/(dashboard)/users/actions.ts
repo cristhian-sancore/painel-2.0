@@ -183,6 +183,30 @@ export async function createUserAction(formData: FormData) {
       console.warn("[Chatwoot Sync] Token da Platform API não encontrado. O usuário não foi sincronizado com o Chatwoot.");
     }
 
+    // 3. Integration with GLPI
+    try {
+      const { GlpiClient } = require("@/lib/glpi");
+      const glpi = await GlpiClient.init();
+      console.log("[GLPI Sync] Sincronizando usuário:", newUser.email);
+      let glpiUserId = null;
+      let glpiUser = await glpi.findUser(newUser.email);
+      if (!glpiUser) {
+        console.log("[GLPI Sync] Criando novo usuário GLPI...");
+        glpiUserId = await glpi.createUser(newUser.name, newUser.email);
+      } else {
+        glpiUserId = glpiUser.id;
+      }
+      if (glpiUserId) {
+        await prisma.user.update({
+          where: { id: newUser.id },
+          data: { glpiUserId }
+        });
+        console.log(`[GLPI Sync] Usuário sincronizado com sucesso. GLPI ID: ${glpiUserId}`);
+      }
+    } catch (glpiErr: any) {
+      console.error("[GLPI Sync] Falha ao sincronizar usuário com o GLPI:", glpiErr.message);
+    }
+
     revalidatePath("/users");
     return { success: true, message: "Usuário criado com sucesso!" };
   } catch (error: any) {
