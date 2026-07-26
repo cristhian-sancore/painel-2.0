@@ -38,11 +38,6 @@ export default function EvolutionPage() {
 
   useEffect(() => {
     loadData();
-    
-    // Close dropdown on outside click
-    const handleClickOutside = () => setOpenDropdown(null);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   async function loadData() {
@@ -275,7 +270,7 @@ export default function EvolutionPage() {
                         <MessageSquare className="w-3.5 h-3.5" /> Chatwoot
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className={`px-6 py-4 text-right ${openDropdown === instanceName ? "relative z-30" : ""}`}>
                       <div className="relative inline-block text-left">
                         {isConnecting && !isOnline && (
                           <button 
@@ -287,36 +282,39 @@ export default function EvolutionPage() {
                         )}
                         <button 
                           onClick={(e) => toggleDropdown(e, instanceName)}
-                          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative z-40"
                         >
                           <MoreVertical className="w-5 h-5" />
                         </button>
                         
                         {/* Dropdown Menu */}
                         {openDropdown === instanceName && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsEditModalOpen(true); setOpenDropdown(null); }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2 transition-colors"
-                            >
-                              <Settings className="w-4 h-4 text-gray-400" /> Configurações
-                            </button>
-                            {isOnline && (
+                          <>
+                            <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }}></div>
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-40 py-1 animate-in fade-in zoom-in-95 duration-100">
                               <button 
-                                onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsReconnectModalOpen(true); setOpenDropdown(null); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 flex items-center gap-2 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsEditModalOpen(true); setOpenDropdown(null); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2 transition-colors"
                               >
-                                <LogOut className="w-4 h-4 text-yellow-500" /> Desconectar
+                                <Settings className="w-4 h-4 text-gray-400" /> Configurações
                               </button>
-                            )}
-                            <div className="h-px bg-gray-100 my-1"></div>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsDeleteModalOpen(true); setOpenDropdown(null); }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-400" /> Excluir Instância
-                            </button>
-                          </div>
+                              {isOnline && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsReconnectModalOpen(true); setOpenDropdown(null); }}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 flex items-center gap-2 transition-colors"
+                                >
+                                  <LogOut className="w-4 h-4 text-yellow-500" /> Desconectar
+                                </button>
+                              )}
+                              <div className="h-px bg-gray-100 my-1"></div>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setSelectedInstance(instanceName); setIsDeleteModalOpen(true); setOpenDropdown(null); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-400" /> Excluir Instância
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     </td>
