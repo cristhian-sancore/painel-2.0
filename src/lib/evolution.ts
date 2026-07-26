@@ -157,7 +157,23 @@ export class EvolutionClient {
     return await res.json();
   }
 
-  // 7. Get QR Code
+  // 7. Configurar Comportamento (Settings)
+  public async setInstanceSettings(instanceName: string, settings: any) {
+    const res = await fetch(`${this.url}/settings/set/${instanceName}`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(settings),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to set instance settings: ${errorText}`);
+    }
+
+    return await res.json();
+  }
+
+  // 8. Get QR Code
   public async getQrCode(instanceName: string) {
     const res = await fetch(`${this.url}/instance/connect/${instanceName}`, {
       method: "GET",

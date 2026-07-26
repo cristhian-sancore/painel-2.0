@@ -27,6 +27,18 @@ export async function createWhatsAppInstance(formData: FormData) {
     // 3. Connect the Instance to Chatwoot
     await evo.connectToChatwoot(generatedName, accountId);
 
+    // 3.5. Configurar Comportamento Padrão (Ignorar grupos, etc)
+    try {
+      await evo.setInstanceSettings(generatedName, {
+        groupsIgnore: true,
+        readMessages: false,
+        readStatus: false,
+        rejectCall: false,
+      });
+    } catch (e) {
+      console.error("Erro ao configurar comportamento da instância:", e);
+    }
+
     // 4. Atribuir à Inbox recém-criada (ou criar fallback se não existir)
     try {
       // Pausa breve para dar tempo do webhook/Evolution criar a inbox
