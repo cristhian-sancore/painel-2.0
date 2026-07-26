@@ -14,7 +14,7 @@ import {
 } from "./actions";
 import { 
   QrCode, Smartphone, Plus, CheckCircle2, AlertCircle, 
-  Trash2, RefreshCw, Users, Server, X, MoreVertical, Settings, LogOut, MessageSquare
+  Trash2, RefreshCw, Users, Server, X, MoreVertical, Settings, LogOut, MessageSquare, Save
 } from "lucide-react";
 
 export default function EvolutionPage() {
