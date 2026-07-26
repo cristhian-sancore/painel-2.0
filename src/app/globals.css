@@ -34,11 +34,13 @@ body {
   background: #475569;
 }
 
-/* Força a cor do texto para escuro em inputs, selects e textareas para evitar o problema de texto branco no fundo branco */
+/* Força a cor do texto para escuro em inputs, selects e textareas por padrão. 
+   O uso de classes do Tailwind como text-white vai sobrescrever isso corretamente, 
+   pois estão na camada utilities. */
 @layer base {
-  input:not(.bg-\\[\\#0f172a\\]), 
-  select:not(.bg-\\[\\#0f172a\\]), 
-  textarea:not(.bg-\\[\\#0f172a\\]) {
-    color: #0f172a !important;
+  input, 
+  select, 
+  textarea {
+    color: #0f172a;
   }
 }
