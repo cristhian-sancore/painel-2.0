@@ -139,4 +139,71 @@ export class GlpiClient {
     const data = await res.json();
     return data; // Returns { id: <ticket_id>, message: ... }
   }
+  // Get Ticket Followups
+  public async getTicketFollowups(ticketId: number) {
+    if (!this.sessionToken) await this.initSession();
+
+    // The API for ITILFollowup allows searching by items_id
+    const res = await fetch(`${this.url}/ITILFollowup?searchText[items_id]=${ticketId}&searchText[itemtype]=Ticket&expand_dropdowns=true`, {
+      method: "GET",
+      headers: this.headers,
+    });
+
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Add Ticket Followup
+  public async addTicketFollowup(ticketId: number, content: string) {
+    if (!this.sessionToken) await this.initSession();
+
+    const payload = {
+      input: {
+        itemtype: "Ticket",
+        items_id: ticketId,
+        content: content
+      }
+    };
+
+    const res = await fetch(`${this.url}/ITILFollowup`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to add ticket followup: ${errorText}`);
+    }
+
+    return await res.json();
+  }
+
+  // Update Ticket Status (e.g. solve/close)
+  public async updateTicketStatus(ticketId: number, status: number) {
+    if (!this.sessionToken) await this.initSession();
+
+    const payload = {
+      input: {
+        items_id: ticketId, // some versions use items_id, others use id. GLPI REST API usually uses id for PUT
+        id: ticketId,
+        status: status
+      }
+    };
+
+    const res = await fetch(`${this.url}/Ticket/${ticketId}`, {
+      method: "PUT",
+      headers: this.headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to update ticket status: ${errorText}`);
+    }
+
+    return await res.json();
+  }
 }

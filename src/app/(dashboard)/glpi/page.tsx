@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchTicketsAction, createTicketAction } from "./actions";
-import { Ticket, Plus, RefreshCw, AlertCircle, CheckCircle2, User, Clock, FileText } from "lucide-react";
+import { fetchTicketsAction, createTicketAction, getTicketFollowupsAction, addTicketFollowupAction, solveTicketAction } from "./actions";
+import { Ticket, Plus, RefreshCw, AlertCircle, CheckCircle2, User, Clock, FileText, Send, Check } from "lucide-react";
 
 export default function GlpiPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -17,10 +17,66 @@ export default function GlpiPage() {
 
   // Modal de Detalhes
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [followups, setFollowups] = useState<any[]>([]);
+  const [loadingFollowups, setLoadingFollowups] = useState(false);
+  const [newFollowup, setNewFollowup] = useState("");
+  const [addingFollowup, setAddingFollowup] = useState(false);
+  const [solving, setSolving] = useState(false);
 
   useEffect(() => {
     loadTickets();
   }, []);
+
+  useEffect(() => {
+    if (selectedTicket) {
+      loadFollowups(selectedTicket.id);
+    } else {
+      setFollowups([]);
+      setNewFollowup("");
+    }
+  }, [selectedTicket]);
+
+  async function loadFollowups(ticketId: number) {
+    setLoadingFollowups(true);
+    const res = await getTicketFollowupsAction(ticketId);
+    if (res.success && res.data) {
+      // Sort by date (oldest first usually)
+      setFollowups(res.data.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    }
+    setLoadingFollowups(false);
+  }
+
+  async function handleAddFollowup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newFollowup.trim() || !selectedTicket) return;
+    
+    setAddingFollowup(true);
+    const res = await addTicketFollowupAction(selectedTicket.id, newFollowup);
+    if (res.success) {
+      setNewFollowup("");
+      await loadFollowups(selectedTicket.id);
+    } else {
+      alert("Erro ao adicionar acompanhamento: " + res.error);
+    }
+    setAddingFollowup(false);
+  }
+
+  async function handleSolveTicket() {
+    if (!selectedTicket) return;
+    if (!confirm("Tem certeza que deseja marcar este chamado como resolvido?")) return;
+    
+    setSolving(true);
+    const res = await solveTicketAction(selectedTicket.id);
+    if (res.success) {
+      setSelectedTicket(null);
+      loadTickets();
+      setSuccess("Chamado marcado como resolvido!");
+      setTimeout(() => setSuccess(null), 3000);
+    } else {
+      alert("Erro ao resolver chamado: " + res.error);
+    }
+    setSolving(false);
+  }
 
   async function loadTickets() {
     setLoading(true);
@@ -280,6 +336,56 @@ export default function GlpiPage() {
                   dangerouslySetInnerHTML={{ __html: selectedTicket.content || "Sem descrição." }}
                 />
               </div>
+
+              {/* Followups Section */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> Acompanhamentos
+                </h3>
+                <div className="space-y-3">
+                  {loadingFollowups ? (
+                    <div className="text-center py-4 text-gray-400 text-sm flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Carregando...
+                    </div>
+                  ) : followups.length === 0 ? (
+                    <div className="text-sm text-gray-400 bg-gray-50/50 p-4 rounded-xl border border-gray-100 text-center">
+                      Nenhum acompanhamento registrado.
+                    </div>
+                  ) : (
+                    followups.map((fw: any) => (
+                      <div key={fw.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs font-bold text-gray-700">{fw.users_id_editor ? "Agente/Usuário" : "Sistema"}</span>
+                          <span className="text-xs text-gray-400">{new Date(fw.date).toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: fw.content }} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Add Followup Form */}
+              <form onSubmit={handleAddFollowup} className="mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Novo Acompanhamento</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newFollowup}
+                    onChange={(e) => setNewFollowup(e.target.value)}
+                    placeholder="Digite uma atualização para o chamado..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    disabled={addingFollowup}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newFollowup.trim() || addingFollowup}
+                    className="px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                  >
+                    {addingFollowup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+              </form>
               
               <div className="grid grid-cols-2 gap-4 text-sm bg-white p-4 rounded-xl border border-gray-100">
                 <div>
@@ -292,7 +398,21 @@ export default function GlpiPage() {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+              {selectedTicket.status !== 5 && selectedTicket.status !== 6 ? (
+                <button
+                  onClick={handleSolveTicket}
+                  disabled={solving}
+                  className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {solving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Resolver Chamado
+                </button>
+              ) : (
+                <div className="text-sm font-bold text-green-600 flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-xl border border-green-100">
+                  <CheckCircle2 className="w-5 h-5" /> Chamado Resolvido/Fechado
+                </div>
+              )}
               <button
                 onClick={() => setSelectedTicket(null)}
                 className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors"
