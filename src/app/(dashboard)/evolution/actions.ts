@@ -41,24 +41,21 @@ export async function createWhatsAppInstance(formData: FormData) {
 
     // 4. Atribuir à Inbox recém-criada (ou criar fallback se não existir)
     try {
-      // Pausa breve para dar tempo do webhook/Evolution criar a inbox
-      await new Promise(r => setTimeout(r, 1500));
-      
-      const inboxesResponse = await chatwoot.getInboxes();
-      const inboxes = inboxesResponse.payload || inboxesResponse;
-      
-      // Procura a inbox criada (Evolution usa 'WhatsApp - ' + nome)
-      let targetInbox = inboxes.find((i: any) => i.name === `WhatsApp - ${generatedName}`);
-      
-      // Fallback: Se a Evolution não criou a inbox, criamos manualmente
+      // Tentar encontrar a inbox criada pelo Evolution (fazemos um polling de até 10 segundos)
+      let targetInbox = null;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1000)); // Espera 1 segundo por tentativa
+        const inboxesResponse = await chatwoot.getInboxes();
+        const inboxes = inboxesResponse.payload || inboxesResponse;
+        targetInbox = inboxes.find((inv: any) => inv.name === `WhatsApp - ${generatedName}`);
+        if (targetInbox) {
+          console.log(`[Evolution] Inbox encontrada após ${i + 1} segundos:`, targetInbox.name);
+          break;
+        }
+      }
+
       if (!targetInbox) {
-        const evolutionUrlSetting = await prisma.setting.findUnique({ where: { key: "evolution_url" } });
-        let evolutionUrl = evolutionUrlSetting?.value || process.env.EVOLUTION_API_URL || "http://localhost:8081";
-        if (evolutionUrl.endsWith('/')) evolutionUrl = evolutionUrl.slice(0, -1);
-        
-        const webhookUrl = `${evolutionUrl}/chatwoot/webhook/${generatedName}`;
-        const newInbox = await chatwoot.createApiInbox(`WhatsApp - ${generatedName}`, webhookUrl);
-        targetInbox = newInbox;
+         console.warn(`[Evolution] Inbox não foi encontrada no Chatwoot após 10 segundos. O time não pôde ser atribuído automaticamente.`);
       }
 
       if (targetInbox) {
@@ -87,6 +84,26 @@ export async function createWhatsAppInstance(formData: FormData) {
 
         if (userIds.length > 0) {
           await chatwoot.assignMembersToInbox(targetInbox.id, userIds);
+        }
+
+        // Salvar mapeamento Team -> Inbox para sincronizar futuros usuários
+        if (teamId && teamId !== "") {
+          try {
+            const mapKey = `team_inboxes_${teamId}`;
+            const existing = await prisma.setting.findUnique({ where: { key: mapKey } });
+            let inboxesArr = [];
+            if (existing) inboxesArr = JSON.parse(existing.value);
+            if (!inboxesArr.includes(targetInbox.id)) {
+              inboxesArr.push(targetInbox.id);
+              await prisma.setting.upsert({
+                 where: { key: mapKey },
+                 update: { value: JSON.stringify(inboxesArr) },
+                 create: { key: mapKey, value: JSON.stringify(inboxesArr) }
+              });
+            }
+          } catch (e) {
+            console.error("Erro ao salvar mapeamento team_inboxes:", e);
+          }
         }
       }
     } catch (e) {

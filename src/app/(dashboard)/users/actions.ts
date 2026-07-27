@@ -131,6 +131,30 @@ export async function createUserAction(formData: FormData) {
                    if (targetTeam) {
                      await cwClient.addTeamMember(targetTeam.id, [cwUserId]);
                      console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à equipe ${targetTeam.name}`);
+                     
+                     // ADD USER TO INBOXES MAPPED TO THIS TEAM
+                     try {
+                        const mapKey = `team_inboxes_${targetTeam.id}`;
+                        const mapSetting = await prisma.setting.findUnique({ where: { key: mapKey } });
+                        if (mapSetting) {
+                           const inboxesArr = JSON.parse(mapSetting.value);
+                           for (const inboxId of inboxesArr) {
+                              const membersRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members?inbox_id=${inboxId}`, { headers: { "api_access_token": platformToken } });
+                              if (membersRes.ok) {
+                                 const data = await membersRes.json();
+                                 const payloadArray = Array.isArray(data) ? data : (data.payload || []);
+                                 const currentIds = payloadArray.map((u: any) => u.id || u.user_id);
+                                 if (!currentIds.includes(cwUserId)) {
+                                     currentIds.push(cwUserId);
+                                     await cwClient.assignMembersToInbox(inboxId, currentIds);
+                                     console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à inbox ${inboxId}`);
+                                 }
+                              }
+                           }
+                        }
+                     } catch (inboxErr) {
+                        console.error("[Chatwoot Sync] Erro ao sincronizar inboxes do time:", inboxErr);
+                     }
                    } else {
                      console.log(`[Chatwoot Sync] Nenhuma equipe encontrada no Chatwoot com o nome ${newUser.accessGroup.name}`);
                    }
