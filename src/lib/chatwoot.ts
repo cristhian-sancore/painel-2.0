@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 export class ChatwootClient {
   private url: string = "";
   private accessToken: string = "";
-  private accountId: number | null = null;
+  public accountId: number | null = null;
 
   private constructor() {}
 
@@ -31,7 +31,7 @@ export class ChatwootClient {
     return client;
   }
 
-  private get headers() {
+  public get headers() {
     return {
       "Content-Type": "application/json",
       api_access_token: this.accessToken,
