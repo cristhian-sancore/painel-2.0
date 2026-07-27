@@ -227,7 +227,7 @@ export async function createUserAction(formData: FormData) {
       let glpiUser = await glpi.findUser(newUser.email);
       if (!glpiUser) {
         console.log("[GLPI Sync] Criando novo usuário GLPI...");
-        glpiUserId = await glpi.createUser(newUser.name, newUser.email);
+        glpiUserId = await glpi.createUser(newUser.name || newUser.email, newUser.email);
       } else {
         glpiUserId = glpiUser.id;
       }
