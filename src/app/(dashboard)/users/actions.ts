@@ -147,23 +147,43 @@ export async function createUserAction(formData: FormData) {
                      await cwClient.addTeamMember(targetTeam.id, [cwUserId]);
                      console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à equipe ${targetTeam.name}`);
                      
-                     // ADD USER TO INBOXES MAPPED TO THIS TEAM
+                     // ADD USER TO INBOXES (Mapped or ALL by default)
                      try {
+                        let targetInboxIds: number[] = [];
                         const mapKey = `team_inboxes_${targetTeam.id}`;
                         const mapSetting = await prisma.setting.findUnique({ where: { key: mapKey } });
-                        if (mapSetting) {
-                           const inboxesArr = JSON.parse(mapSetting.value);
-                           for (const inboxId of inboxesArr) {
-                              const membersRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members?inbox_id=${inboxId}`, { headers: cwClient.headers });
-                              if (membersRes.ok) {
-                                 const data = await membersRes.json();
-                                 const payloadArray = Array.isArray(data) ? data : (data.payload || []);
-                                 const currentIds = payloadArray.map((u: any) => u.id || u.user_id);
-                                 if (!currentIds.includes(cwUserId)) {
-                                     currentIds.push(cwUserId);
-                                     await cwClient.assignMembersToInbox(inboxId, currentIds);
-                                     console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à inbox ${inboxId}`);
-                                 }
+                        if (mapSetting && mapSetting.value) {
+                           try { targetInboxIds = JSON.parse(mapSetting.value); } catch(e) {}
+                        }
+
+                        // If no specific mapping exists, assign to ALL inboxes by default
+                        if (targetInboxIds.length === 0) {
+                           const inboxesRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inboxes`, { headers: cwClient.headers });
+                           if (inboxesRes.ok) {
+                              const inboxesData = await inboxesRes.json();
+                              const inboxesArray = inboxesData.payload || inboxesData;
+                              targetInboxIds = inboxesArray.map((i: any) => i.id);
+                           }
+                        }
+
+                        for (const inboxId of targetInboxIds) {
+                           const membersRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members/${inboxId}`, { headers: cwClient.headers });
+                           if (membersRes.ok) {
+                              const data = await membersRes.json();
+                              const payloadArray = Array.isArray(data) ? data : (data.payload || []);
+                              const currentIds = payloadArray.map((u: any) => u.id || u.user_id);
+                              
+                              if (!currentIds.includes(cwUserId)) {
+                                  currentIds.push(cwUserId);
+                                  await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members`, {
+                                      method: "POST",
+                                      headers: cwClient.headers,
+                                      body: JSON.stringify({
+                                          inbox_id: inboxId,
+                                          user_ids: Array.from(new Set(currentIds))
+                                      })
+                                  });
+                                  console.log(`[Chatwoot Sync] Usuário adicionado com sucesso à inbox ${inboxId}`);
                               }
                            }
                         }
