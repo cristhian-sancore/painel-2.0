@@ -20,7 +20,27 @@ export async function fetchTicketsAction() {
 
     const glpi = await GlpiClient.init();
     
-    const isAdmin = user.accessGroup?.name.toLowerCase() === "administrador" || user.role === "ADMIN";
+    let isGlpiAdmin = false;
+    if (user.accessGroup && user.accessGroup.permissions) {
+      try {
+        const perms = JSON.parse(user.accessGroup.permissions);
+        if (Array.isArray(perms) && perms.includes("glpi_admin")) {
+          isGlpiAdmin = true;
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    
+    const isAdmin = 
+      user.role === "ADMIN" || 
+      user.role === "admin" || 
+      user.accessGroup?.name.toLowerCase() === "administrador" ||
+      user.accessGroup?.name.toLowerCase() === "administradores" ||
+      user.accessGroup?.name.toLowerCase() === "admin" ||
+      isGlpiAdmin;
+
+    console.log(`[GLPI ACTIONS] User: ${user.email}, isAdmin: ${isAdmin}, isGlpiAdmin: ${isGlpiAdmin}`);
 
     let tickets;
     if (isAdmin) {
@@ -67,8 +87,10 @@ export async function fetchTicketsAction() {
 
          if (res.ok) {
            const result = await res.json();
+           console.log("[GLPI ACTIONS] Search result data length:", result.data ? result.data.length : 0);
            tickets = result.data || [];
          } else {
+           console.log("[GLPI ACTIONS] Search response not OK:", res.status);
            tickets = [];
          }
       }
