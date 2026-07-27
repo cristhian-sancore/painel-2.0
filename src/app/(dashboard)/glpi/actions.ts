@@ -42,58 +42,55 @@ export async function fetchTicketsAction() {
 
     console.log(`[GLPI ACTIONS] User: ${user.email}, isAdmin: ${isAdmin}, isGlpiAdmin: ${isGlpiAdmin}`);
 
-    let tickets;
-    if (isAdmin) {
-      tickets = await glpi.getTickets();
+    let tickets = [];
+
+    if (!user.glpiUserId && !user.accessGroup?.glpiGroupId) {
+       // Se não tiver vínculo, não vê nenhum chamado
+       tickets = [];
     } else {
-      if (!user.glpiUserId && !user.accessGroup?.glpiGroupId) {
-         // Se não for admin e não tiver vínculo, não vê nenhum chamado por enquanto
+       const searchUrl = new URL(`${(glpi as any).url}/search/Ticket`);
+       searchUrl.searchParams.append("expand_dropdowns", "true");
+       searchUrl.searchParams.append("range", "0-50");
+       let criteriaIndex = 0;
+
+       if (user.glpiUserId) {
+         // Atribuído a ele
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "5");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.glpiUserId.toString());
+         
+         // Requerente
+         criteriaIndex++;
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][link]`, "OR");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "4");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.glpiUserId.toString());
+       }
+
+       if (user.accessGroup?.glpiGroupId) {
+         if (criteriaIndex > 0) {
+            criteriaIndex++;
+            searchUrl.searchParams.append(`criteria[${criteriaIndex}][link]`, "OR");
+         }
+         // Atribuído ao Grupo dele
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "8");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
+         searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.accessGroup.glpiGroupId.toString());
+       }
+
+       const res = await fetch(searchUrl.toString(), {
+         method: "GET",
+         headers: (glpi as any).headers,
+       });
+
+       if (res.ok) {
+         const result = await res.json();
+         console.log("[GLPI ACTIONS] Search result data length:", result.data ? result.data.length : 0);
+         tickets = result.data || [];
+       } else {
+         console.log("[GLPI ACTIONS] Search response not OK:", res.status);
          tickets = [];
-      } else {
-         const searchUrl = new URL(`${(glpi as any).url}/search/Ticket`);
-         searchUrl.searchParams.append("expand_dropdowns", "true");
-         searchUrl.searchParams.append("range", "0-50");
-         let criteriaIndex = 0;
-
-         if (user.glpiUserId) {
-           // Atribuído a ele
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "5");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.glpiUserId.toString());
-           
-           // Requerente
-           criteriaIndex++;
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][link]`, "OR");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "4");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.glpiUserId.toString());
-         }
-
-         if (user.accessGroup?.glpiGroupId) {
-           if (criteriaIndex > 0) {
-              criteriaIndex++;
-              searchUrl.searchParams.append(`criteria[${criteriaIndex}][link]`, "OR");
-           }
-           // Atribuído ao Grupo dele
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][field]`, "8");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][searchtype]`, "equals");
-           searchUrl.searchParams.append(`criteria[${criteriaIndex}][value]`, user.accessGroup.glpiGroupId.toString());
-         }
-
-         const res = await fetch(searchUrl.toString(), {
-           method: "GET",
-           headers: (glpi as any).headers,
-         });
-
-         if (res.ok) {
-           const result = await res.json();
-           console.log("[GLPI ACTIONS] Search result data length:", result.data ? result.data.length : 0);
-           tickets = result.data || [];
-         } else {
-           console.log("[GLPI ACTIONS] Search response not OK:", res.status);
-           tickets = [];
-         }
-      }
+       }
     }
     
     await glpi.killSession();
