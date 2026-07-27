@@ -17,7 +17,7 @@ async function main() {
           console.log(`Creating GLPI group: ${group.name}`);
           const newId = await glpi.createGroup(group.name);
           if (newId) {
-            glpiGroup = { id: newId };
+            glpiGroup = { id: newId, name: group.name };
           }
         }
         
@@ -41,7 +41,7 @@ async function main() {
           console.log(`Creating GLPI user: ${user.name || user.email}`);
           const newId = await glpi.createUser(user.name || user.email.split('@')[0], user.email);
           if (newId) {
-            glpiUser = { id: newId };
+            glpiUser = { id: newId, email: user.email };
           }
         }
         
