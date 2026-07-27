@@ -15,6 +15,7 @@ export default function SettingsPage() {
     chatwoot_url: "",
     chatwoot_token: "",
     chatwoot_platform_token: "",
+    chatwoot_glpi_token: "",
     glpi_url: "",
     glpi_app_token: "",
     glpi_user_token: "",
@@ -191,6 +192,20 @@ export default function SettingsPage() {
                     placeholder="Token de Plataforma do Chatwoot"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
+                </div>
+                <div className="border-t border-gray-100 pt-4 mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Access Token do Bot GLPI (Opcional)</label>
+                  <input
+                    type="password"
+                    name="chatwoot_glpi_token"
+                    value={settings.chatwoot_glpi_token || ""}
+                    onChange={handleChange}
+                    placeholder="Token do usuário/bot criado no Chatwoot para o GLPI"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Se preenchido, todas as mensagens automáticas de sistema do GLPI serão enviadas com a assinatura deste Bot em vez do usuário padrão.
+                  </p>
                 </div>
               </div>
             </div>

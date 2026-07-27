@@ -414,7 +414,8 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
         const formData = new FormData();
         const msgText = res.defaultMessage || `Chamado #${ticketId} criado com sucesso no GLPI. Daremos retorno por aqui!`;
         formData.append("content", msgText);
-        await sendMessageAction(url, token, activeConv.id, formData);
+        const tokenToUse = res.glpiBotToken || token;
+        await sendMessageAction(url, tokenToUse, activeConv.id, formData);
         fetchMessages(activeConv.id);
       } else {
         alert("Chamado criado com sucesso!");

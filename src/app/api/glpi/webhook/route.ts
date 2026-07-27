@@ -56,10 +56,12 @@ export async function POST(req: Request) {
     // Get Chatwoot settings
     const urlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const tokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
+    const glpiTokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_glpi_token" } });
     const prefixSetting = await prisma.setting.findUnique({ where: { key: "glpi_followup_prefix" } });
     
     let chatwootUrl = urlSetting?.value || process.env.CHATWOOT_API_URL || "";
-    const chatwootToken = tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
+    // Se existir token específico do bot do GLPI, usamos ele. Se não, usamos o token geral
+    const chatwootToken = glpiTokenSetting?.value || tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
     const followupPrefix = prefixSetting?.value !== undefined ? prefixSetting.value : "[GLPI]: ";
 
     if (!chatwootUrl || !chatwootToken) {
