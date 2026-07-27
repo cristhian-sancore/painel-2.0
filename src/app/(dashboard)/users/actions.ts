@@ -248,6 +248,15 @@ export async function createUserAction(formData: FormData) {
           data: { glpiUserId }
         });
         console.log(`[GLPI Sync] Usuário sincronizado com sucesso. GLPI ID: ${glpiUserId}`);
+
+        if (newUser.accessGroup?.glpiGroupId) {
+          try {
+             await glpi.addUserToGroup(glpiUserId, newUser.accessGroup.glpiGroupId);
+             console.log(`[GLPI Sync] Usuário adicionado ao grupo GLPI: ${newUser.accessGroup.glpiGroupId}`);
+          } catch (e) {
+             console.error(`[GLPI Sync] Falha ao adicionar usuário ao grupo:`, e);
+          }
+        }
       }
     } catch (glpiErr: any) {
       console.error("[GLPI Sync] Falha ao sincronizar usuário com o GLPI:", glpiErr.message);
@@ -363,6 +372,18 @@ export async function updateUserAction(id: string, formData: FormData) {
       } catch (teamErr) {
         console.error("[Chatwoot Sync] Erro ao atualizar equipe do usuário:", teamErr);
       }
+    }
+
+    // GLPI Sync for update
+    if (updatedUser.glpiUserId && updatedUser.accessGroup?.glpiGroupId) {
+       try {
+          const { GlpiClient } = require("@/lib/glpi");
+          const glpi = await GlpiClient.init();
+          await glpi.addUserToGroup(updatedUser.glpiUserId, updatedUser.accessGroup.glpiGroupId);
+          console.log(`[GLPI Sync] Usuário atualizado adicionado ao grupo GLPI: ${updatedUser.accessGroup.glpiGroupId}`);
+       } catch (glpiErr: any) {
+          console.error("[GLPI Sync] Falha ao vincular usuário ao grupo GLPI na atualização:", glpiErr.message);
+       }
     }
 
     revalidatePath("/users");

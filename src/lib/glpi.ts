@@ -140,13 +140,47 @@ export class GlpiClient {
       body: JSON.stringify({
         input: {
           name: name,
+          is_assign: 1,
+          is_requester: 1,
+          is_watcher: 1
         }
       })
     });
     
-    if (!res.ok) return null;
+    if (!res.ok) {
+       const errorText = await res.text();
+       throw new Error(`Failed to create GLPI group: ${errorText}`);
+    }
     const data = await res.json();
     return data.id || null;
+  }
+
+  // Add User to Group
+  public async addUserToGroup(userId: number, groupId: number) {
+    if (!this.sessionToken) await this.initSession();
+
+    const payload = {
+      input: {
+        users_id: userId,
+        groups_id: groupId,
+        is_manager: 0,
+        is_delegatee: 0
+      }
+    };
+
+    const res = await fetch(`${this.url}/Group_User`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.warn(`[GLPI] Failed to add user to group (might already exist): ${errorText}`);
+      return false;
+    }
+
+    return true;
   }
 
   // Get active tickets
