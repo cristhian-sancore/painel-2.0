@@ -238,7 +238,7 @@ export class GlpiClient {
   }
 
   // Create Ticket
-  public async createTicket(title: string, content: string, requesterId?: number) {
+  public async createTicket(title: string, content: string, requesterId?: number, assigneeId?: number) {
     if (!this.sessionToken) await this.initSession();
 
     const payload: any = {
@@ -252,6 +252,10 @@ export class GlpiClient {
 
     if (requesterId) {
       payload.input._users_id_requester = requesterId;
+    }
+
+    if (assigneeId) {
+      payload.input._users_id_assign = assigneeId;
     }
 
     const res = await fetch(`${this.url}/Ticket`, {

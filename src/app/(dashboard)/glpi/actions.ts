@@ -42,12 +42,14 @@ export async function fetchTicketsAction() {
 
     console.log(`[GLPI ACTIONS] User: ${user.email}, isAdmin: ${isAdmin}, isGlpiAdmin: ${isGlpiAdmin}`);
 
-    let tickets = [];
-
-    if (!user.glpiUserId && !user.accessGroup?.glpiGroupId) {
-       // Se não tiver vínculo, não vê nenhum chamado
-       tickets = [];
+    let tickets;
+    if (isAdmin) {
+      tickets = await glpi.getTickets();
     } else {
+      if (!user.glpiUserId && !user.accessGroup?.glpiGroupId) {
+         // Se não for admin e não tiver vínculo, não vê nenhum chamado por enquanto
+         tickets = [];
+      } else {
        const searchUrl = new URL(`${(glpi as any).url}/search/Ticket`);
        searchUrl.searchParams.append("expand_dropdowns", "true");
        searchUrl.searchParams.append("range", "0-50");
@@ -91,6 +93,7 @@ export async function fetchTicketsAction() {
          console.log("[GLPI ACTIONS] Search response not OK:", res.status);
          tickets = [];
        }
+       }
     }
     
     await glpi.killSession();
@@ -104,19 +107,20 @@ export async function createTicketAction(title: string, description: string, use
   try {
     const session = await getServerSession(authOptions);
     let requesterId = undefined;
+    let assigneeId = undefined;
 
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email }
       });
       if (user?.glpiUserId) {
-        requesterId = user.glpiUserId;
+        assigneeId = user.glpiUserId; // O técnico é o usuário do painel
       }
     }
 
     const glpi = await GlpiClient.init();
     
-    // Tenta encontrar o usuário pelo telefone ou email fornecido pelo Chatwoot
+    // Tenta encontrar o usuário pelo telefone ou email fornecido pelo Chatwoot (o requerente)
     if (userPhoneOrEmail) {
       const glpiUser = await glpi.findUser(userPhoneOrEmail);
       if (glpiUser && glpiUser.id) {
@@ -130,7 +134,7 @@ export async function createTicketAction(title: string, description: string, use
       }
     }
 
-    const ticket = await glpi.createTicket(title, description, requesterId);
+    const ticket = await glpi.createTicket(title, description, requesterId, assigneeId);
     
     let defaultMessage = `Chamado #${ticket?.id} criado com sucesso no GLPI. Daremos retorno por aqui!`;
     let glpiBotToken = undefined;
