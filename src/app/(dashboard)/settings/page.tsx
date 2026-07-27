@@ -107,7 +107,7 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("glpi")}
           className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'glpi' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
         >
-          Mensagens do GLPI
+          GLPI
         </button>
       </div>
 
@@ -228,16 +228,25 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+          </>
+        )}
 
-            {/* GLPI API */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="border-b border-gray-100 bg-gray-50 px-6 py-4 flex items-center gap-3">
-                <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
-                  <Database className="w-5 h-5" />
-                </div>
-                <h2 className="font-semibold text-gray-800">GLPI Helpdesk</h2>
+        {/* GLPI TAB */}
+        {activeTab === 'glpi' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden lg:col-span-2">
+            <div className="border-b border-gray-100 bg-gray-50 px-6 py-4 flex items-center gap-3">
+              <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
+                <Database className="w-5 h-5" />
               </div>
-              <div className="p-6 space-y-4">
+              <h2 className="font-semibold text-gray-800">Configurações do GLPI</h2>
+            </div>
+            
+            {/* Split GLPI settings into two columns inside this wide card */}
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* Column 1: API Connection */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900 border-b pb-2">Conexão da API</h3>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">API URL</label>
                   <input
@@ -272,48 +281,40 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-            </div>
-          </>
-        )}
 
-        {/* GLPI MESSAGES TAB */}
-        {activeTab === 'glpi' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden lg:col-span-2">
-            <div className="border-b border-gray-100 bg-gray-50 px-6 py-4 flex items-center gap-3">
-              <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
-                <Database className="w-5 h-5" />
+              {/* Column 2: Automations & Messages */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900 border-b pb-2">Mensagens e Automações</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem de Novo Chamado</label>
+                  <input
+                    type="text"
+                    name="glpi_new_ticket_message"
+                    value={settings.glpi_new_ticket_message || ""}
+                    onChange={handleChange}
+                    placeholder="Chamado #{ticketId} criado com sucesso. Daremos retorno por aqui!"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use <strong>{'{ticketId}'}</strong> para injetar automaticamente o número do chamado na mensagem.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prefixo de Resposta do GLPI</label>
+                  <input
+                    type="text"
+                    name="glpi_followup_prefix"
+                    value={settings.glpi_followup_prefix || ""}
+                    onChange={handleChange}
+                    placeholder="[GLPI]: "
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Este texto aparecerá sempre no início da mensagem quando um técnico responder o chamado pelo painel nativo do GLPI.
+                  </p>
+                </div>
               </div>
-              <h2 className="font-semibold text-gray-800">Mensagens Automáticas do GLPI</h2>
-            </div>
-            <div className="p-6 space-y-6 max-w-3xl">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem de Novo Chamado</label>
-                <input
-                  type="text"
-                  name="glpi_new_ticket_message"
-                  value={settings.glpi_new_ticket_message || ""}
-                  onChange={handleChange}
-                  placeholder="Chamado #{ticketId} criado com sucesso. Daremos retorno por aqui!"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Esta mensagem será enviada no Chatwoot/WhatsApp assim que o chamado for criado pelo painel. Use <strong>{'{ticketId}'}</strong> para injetar automaticamente o número do chamado na mensagem.
-                </p>
-              </div>
-              <div className="border-t border-gray-100 pt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prefixo de Resposta do GLPI (Acompanhamento)</label>
-                <input
-                  type="text"
-                  name="glpi_followup_prefix"
-                  value={settings.glpi_followup_prefix || ""}
-                  onChange={handleChange}
-                  placeholder="[GLPI]: "
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Este texto aparecerá sempre no início da mensagem quando um técnico responder o chamado pelo painel nativo do GLPI.
-                </p>
-              </div>
+
             </div>
           </div>
         )}
