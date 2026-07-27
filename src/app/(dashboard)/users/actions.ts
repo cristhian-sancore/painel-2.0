@@ -88,6 +88,21 @@ export async function createUserAction(formData: FormData) {
         })
       });
 
+      if (!chatwootRes.ok) {
+        const errText = await chatwootRes.text();
+        console.error("[Chatwoot Sync] Erro na API do Chatwoot:", errText);
+        
+        let errorMsg = "Erro desconhecido no Chatwoot.";
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed.message) errorMsg = parsed.message;
+        } catch(e) {}
+        
+        // Se falhou no Chatwoot, apaga o usuário recém criado no Painel e retorna o erro para a UI
+        await prisma.user.delete({ where: { id: newUser.id } });
+        return { success: false, error: `Erro no Chatwoot: ${errorMsg}` };
+      }
+
       if (chatwootRes.ok) {
         const cwUserResp: any = await chatwootRes.json();
         // Chatwoot might return the user directly or wrapped in a user object
@@ -200,9 +215,6 @@ export async function createUserAction(formData: FormData) {
              chatwootAccessToken: chatwootAccessToken
            }
         });
-      } else {
-        const errText = await chatwootRes.text();
-        console.error("[Chatwoot Sync] Erro na API do Chatwoot:", errText);
       }
     } else {
       console.warn("[Chatwoot Sync] Token da Platform API não encontrado. O usuário não foi sincronizado com o Chatwoot.");
