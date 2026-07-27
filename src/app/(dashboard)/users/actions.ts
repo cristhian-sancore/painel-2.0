@@ -118,15 +118,13 @@ export async function createUserAction(formData: FormData) {
           if (!accountId) {
             console.error("[Chatwoot Sync] Nenhuma conta encontrada no Chatwoot para vincular o usuário.");
           } else {
-            // Link user to account
-            const linkRes = await fetch(`${chatwootUrl}/platform/api/v1/accounts/${accountId}/account_users`, {
+            // Link user to account using Admin API (which works for Platform created users)
+            const linkRes = await fetch(`${chatwootUrl}/api/v1/accounts/${accountId}/agents`, {
               method: "POST",
-              headers: {
-                "api_access_token": platformToken,
-                "Content-Type": "application/json"
-              },
+              headers: cwClient.headers,
               body: JSON.stringify({
-                user_id: cwUserId,
+                name: newUser.name,
+                email: newUser.email,
                 role: role
               })
             });
