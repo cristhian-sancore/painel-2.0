@@ -3,6 +3,8 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcrypt";
+import { ChatwootClient } from "@/lib/chatwoot";
+import { GlpiClient } from "@/lib/glpi";
 
 
 export async function fetchUsersAction() {
@@ -110,7 +112,6 @@ export async function createUserAction(formData: FormData) {
         console.log("[Chatwoot Sync] Usuário criado no Chatwoot com ID:", cwUserId);
         
         try {
-          const { ChatwootClient } = require("@/lib/chatwoot");
           const cwClient = await ChatwootClient.init();
           await cwClient.setAccountId();
           const accountId = cwClient.accountId; // Conta principal recuperada via API
@@ -220,7 +221,6 @@ export async function createUserAction(formData: FormData) {
 
     // 3. Integration with GLPI
     try {
-      const { GlpiClient } = require("@/lib/glpi");
       const glpi = await GlpiClient.init();
       console.log("[GLPI Sync] Sincronizando usuário:", newUser.email);
       let glpiUserId = null;
