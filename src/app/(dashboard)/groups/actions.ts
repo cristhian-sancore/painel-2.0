@@ -17,6 +17,27 @@ export async function fetchGroupsAction() {
   }
 }
 
+export async function fetchChatwootInboxesAction() {
+  try {
+    const cw = await ChatwootClient.init();
+    const inboxes = await cw.getInboxes();
+    return { success: true, data: inboxes.map((i: any) => ({ id: i.id, name: i.name })) };
+  } catch (error: any) {
+    console.error("fetchChatwootInboxesAction error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function fetchGroupInboxesAction(groupId: string) {
+  try {
+    const setting = await prisma.setting.findUnique({ where: { key: `group_inboxes_${groupId}` } });
+    if (!setting) return { success: true, data: [] };
+    return { success: true, data: JSON.parse(setting.value) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function createGroupAction(formData: FormData) {
   try {
     const name = formData.get("name") as string;
@@ -31,6 +52,15 @@ export async function createGroupAction(formData: FormData) {
         permissions: permissionsStr || "[]",
       },
     });
+
+    const inboxesStr = formData.get("chatwootInboxes") as string;
+    if (inboxesStr) {
+      await prisma.setting.upsert({
+        where: { key: `group_inboxes_${group.id}` },
+        update: { value: inboxesStr },
+        create: { key: `group_inboxes_${group.id}`, value: inboxesStr }
+      });
+    }
 
     let chatwootMessage = "";
     if (createTeamInChatwoot) {
@@ -111,6 +141,15 @@ export async function updateGroupAction(id: string, formData: FormData) {
         permissions: permissionsStr || "[]",
       },
     });
+
+    const inboxesStr = formData.get("chatwootInboxes") as string;
+    if (inboxesStr) {
+      await prisma.setting.upsert({
+        where: { key: `group_inboxes_${group.id}` },
+        update: { value: inboxesStr },
+        create: { key: `group_inboxes_${group.id}`, value: inboxesStr }
+      });
+    }
 
     revalidatePath("/groups");
     return { success: true, data: group };

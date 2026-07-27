@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchGroupsAction, createGroupAction, deleteGroupAction, updateGroupAction } from "./actions";
+import { fetchGroupsAction, createGroupAction, deleteGroupAction, updateGroupAction, fetchChatwootInboxesAction, fetchGroupInboxesAction } from "./actions";
 import { Shield, Plus, CheckCircle2, AlertCircle, Trash2, RefreshCw, X, Edit } from "lucide-react";
 
 const PERMISSIONS = [
@@ -29,9 +29,24 @@ export default function GroupsPage() {
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
   const [createTeamInChatwoot, setCreateTeamInChatwoot] = useState(true);
 
+  // Inboxes State
+  const [chatwootInboxes, setChatwootInboxes] = useState<any[]>([]);
+  const [selectedInboxes, setSelectedInboxes] = useState<number[]>([]);
+  const [loadingInboxes, setLoadingInboxes] = useState(false);
+
   useEffect(() => {
     loadData();
+    loadInboxes();
   }, []);
+
+  async function loadInboxes() {
+    setLoadingInboxes(true);
+    const res = await fetchChatwootInboxesAction();
+    if (res.success && res.data) {
+      setChatwootInboxes(res.data);
+    }
+    setLoadingInboxes(false);
+  }
 
   async function loadData() {
     setLoadingData(true);
@@ -51,6 +66,7 @@ export default function GroupsPage() {
     setName("");
     setSelectedPerms([]);
     setCreateTeamInChatwoot(true);
+    setSelectedInboxes([]);
     setIsModalOpen(true);
   }
 
@@ -65,12 +81,26 @@ export default function GroupsPage() {
       setSelectedPerms([]);
     }
     setCreateTeamInChatwoot(false);
+    setSelectedInboxes([]);
     setIsModalOpen(true);
+
+    // Fetch mapped inboxes
+    fetchGroupInboxesAction(group.id).then(res => {
+      if (res.success && res.data) {
+        setSelectedInboxes(res.data);
+      }
+    });
   }
 
   function togglePermission(id: string) {
     setSelectedPerms(prev => 
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  }
+
+  function toggleInbox(id: number) {
+    setSelectedInboxes(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   }
 
@@ -84,6 +114,7 @@ export default function GroupsPage() {
     formData.append("name", name);
     formData.append("permissions", JSON.stringify(selectedPerms));
     formData.append("createTeamInChatwoot", createTeamInChatwoot ? "true" : "false");
+    formData.append("chatwootInboxes", JSON.stringify(selectedInboxes));
 
     let res;
     if (editingGroup) {
@@ -303,6 +334,36 @@ export default function GroupsPage() {
                       </label>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Caixas de Entrada (Chatwoot)
+                  </label>
+                  {loadingInboxes ? (
+                    <div className="text-sm text-gray-500">Carregando caixas de entrada...</div>
+                  ) : chatwootInboxes.length === 0 ? (
+                    <div className="text-sm text-gray-500">Nenhuma caixa de entrada encontrada.</div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                      {chatwootInboxes.map(inbox => (
+                        <label key={inbox.id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedInboxes.includes(inbox.id)}
+                            onChange={() => toggleInbox(inbox.id)}
+                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="ml-3 text-sm text-gray-700 font-medium select-none">
+                            {inbox.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">
+                    Os usuários deste grupo terão acesso APENAS às caixas de entrada selecionadas. Se não selecionar nenhuma, eles não terão acesso a nenhuma caixa no Chatwoot.
+                  </p>
                 </div>
 
                 {error && (

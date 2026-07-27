@@ -53,6 +53,14 @@ export class ChatwootClient {
     return data;
   }
 
+  public async getInboxes() {
+    if (!this.accountId) await this.setAccountId();
+    const res = await fetch(`${this.url}/api/v1/accounts/${this.accountId}/inboxes`, { headers: this.headers });
+    if (!res.ok) throw new Error("Falha ao buscar caixas de entrada");
+    const data = await res.json();
+    return data.payload || data;
+  }
+
   public async setAccountId() {
     if (this.accountId) return this.accountId;
     
