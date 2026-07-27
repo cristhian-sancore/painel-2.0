@@ -15,6 +15,7 @@ export default function SettingsPage() {
     chatwoot_url: "",
     chatwoot_token: "",
     chatwoot_platform_token: "",
+    chatwoot_account_id: "",
     chatwoot_glpi_token: "",
     glpi_url: "",
     glpi_app_token: "",
@@ -192,6 +193,20 @@ export default function SettingsPage() {
                     placeholder="Token de Plataforma do Chatwoot"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account ID (ID da Empresa)</label>
+                  <input
+                    type="number"
+                    name="chatwoot_account_id"
+                    value={settings.chatwoot_account_id || ""}
+                    onChange={handleChange}
+                    placeholder="Ex: 1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ID numérico da conta principal no Chatwoot para vincular os usuários e caixas de entrada.
+                  </p>
                 </div>
                 <div className="border-t border-gray-100 pt-4 mt-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Access Token do Bot GLPI (Opcional)</label>

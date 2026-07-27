@@ -56,20 +56,24 @@ export class ChatwootClient {
   public async setAccountId() {
     if (this.accountId) return this.accountId;
     
+    try {
+      const accountIdSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_account_id" } });
+      if (accountIdSetting && accountIdSetting.value) {
+        this.accountId = parseInt(accountIdSetting.value, 10);
+        return this.accountId;
+      }
+    } catch (e) {
+      console.log("[ChatwootClient] Ignorando configuração de chatwoot_account_id.");
+    }
+    
     const profile = await this.getAccounts();
     if (profile && profile.account_id) {
       this.accountId = profile.account_id;
+    } else if (profile && profile.accounts && profile.accounts.length > 0) {
+      this.accountId = profile.accounts[0].id;
     } else {
-      // Fallback if profile doesn't have it directly, try /api/v1/accounts
-      const res = await fetch(`${this.url}/api/v1/accounts`, {
-        headers: this.headers,
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        this.accountId = data[0].id;
-      }
+      this.accountId = 1;
     }
-    
     if (!this.accountId) {
       throw new Error("Não foi possível encontrar um Account ID no Chatwoot.");
     }
