@@ -56,8 +56,11 @@ export async function POST(req: Request) {
     // Get Chatwoot settings
     const urlSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_url" } });
     const tokenSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_token" } });
+    const prefixSetting = await prisma.setting.findUnique({ where: { key: "glpi_followup_prefix" } });
+    
     let chatwootUrl = urlSetting?.value || process.env.CHATWOOT_API_URL || "";
     const chatwootToken = tokenSetting?.value || process.env.CHATWOOT_ACCESS_TOKEN || "";
+    const followupPrefix = prefixSetting?.value !== undefined ? prefixSetting.value : "[GLPI]: ";
 
     if (!chatwootUrl || !chatwootToken) {
       return NextResponse.json({ error: "Chatwoot settings not configured" }, { status: 500 });
@@ -68,7 +71,8 @@ export async function POST(req: Request) {
 
     // Send message to Chatwoot
     const formData = new FormData();
-    formData.append("content", `[GLPI]: ${cleanContent}`);
+    const finalContent = payload.event === "update" ? cleanContent : `${followupPrefix}${cleanContent}`;
+    formData.append("content", finalContent);
     formData.append("message_type", "outgoing");
     formData.append("private", "false");
 

@@ -113,9 +113,17 @@ export async function createTicketAction(title: string, description: string, use
 
     const ticket = await glpi.createTicket(title, description, requesterId);
     
+    let defaultMessage = `Chamado #${ticket?.id} criado com sucesso no GLPI. Daremos retorno por aqui!`;
+    
     if (ticket && ticket.id && chatwootConversationId) {
       // Find chatwoot account id from settings
       const cwAccSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_account_id" } });
+      const msgSetting = await prisma.setting.findUnique({ where: { key: "glpi_new_ticket_message" } });
+      
+      if (msgSetting && msgSetting.value) {
+        defaultMessage = msgSetting.value.replace("{ticketId}", ticket.id.toString());
+      }
+
       const accountId = cwAccSetting ? parseInt(cwAccSetting.value, 10) : 1;
       
       await prisma.ticketConversation.create({
@@ -129,7 +137,7 @@ export async function createTicketAction(title: string, description: string, use
     
     await glpi.killSession();
     
-    return { success: true, data: ticket };
+    return { success: true, data: ticket, defaultMessage };
   } catch (err: any) {
     return { error: err.message };
   }

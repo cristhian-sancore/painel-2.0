@@ -17,6 +17,8 @@ export default function SettingsPage() {
     glpi_url: "",
     glpi_app_token: "",
     glpi_user_token: "",
+    glpi_new_ticket_message: "",
+    glpi_followup_prefix: "",
     proxmox_url: "",
     proxmox_token: "",
   });
@@ -248,6 +250,30 @@ export default function SettingsPage() {
                 placeholder="Ex: X2YDSYheWg..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem de Novo Chamado</label>
+              <input
+                type="text"
+                name="glpi_new_ticket_message"
+                value={settings.glpi_new_ticket_message || ""}
+                onChange={handleChange}
+                placeholder="Chamado #{ticketId} criado com sucesso. Daremos retorno por aqui!"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">Use {'{ticketId}'} para incluir o número do chamado.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prefixo de Resposta do GLPI</label>
+              <input
+                type="text"
+                name="glpi_followup_prefix"
+                value={settings.glpi_followup_prefix || ""}
+                onChange={handleChange}
+                placeholder="[GLPI]: "
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">Texto que aparece antes da resposta automática.</p>
             </div>
           </div>
         </div>

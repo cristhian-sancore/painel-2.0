@@ -409,11 +409,11 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
       setIsTicketModalOpen(false);
       setNewTicket({ title: "", description: "" });
       
-      // Envia uma mensagem interna no chat informando o número do chamado
       const ticketId = res.data?.id;
       if (ticketId) {
         const formData = new FormData();
-        formData.append("content", `Chamado #${ticketId} criado com sucesso no GLPI. Daremos retorno por aqui!`);
+        const msgText = res.defaultMessage || `Chamado #${ticketId} criado com sucesso no GLPI. Daremos retorno por aqui!`;
+        formData.append("content", msgText);
         await sendMessageAction(url, token, activeConv.id, formData);
         fetchMessages(activeConv.id);
       } else {
