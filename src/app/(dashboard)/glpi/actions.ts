@@ -127,9 +127,9 @@ export async function createTicketAction(title: string, description: string, use
         requesterId = glpiUser.id;
       } else if (contactName) {
         // Create user in GLPI if not found
-        const newUser = await glpi.createUser(contactName, userPhoneOrEmail);
-        if (newUser && newUser.id) {
-          requesterId = newUser.id;
+        const newUserId = await glpi.createUser(contactName, userPhoneOrEmail);
+        if (newUserId) {
+          requesterId = newUserId;
         }
       }
     }
