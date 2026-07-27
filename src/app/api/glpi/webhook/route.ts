@@ -6,33 +6,37 @@ export async function POST(req: Request) {
     const payload = await req.json();
     console.log("[GLPI Webhook] Received payload:", JSON.stringify(payload));
 
-    // The GLPI webhook payload structure depends on the plugin version.
-    // Commonly, it sends { event: "add", itemtype: "ITILFollowup", items_id: <followup_id>, item: { items_id: <ticket_id>, content: "...", is_private: 0 } }
-    
-    // Attempt to extract the Ticket ID and Content
+    // The GLPI webhook payload structure
+    // For Followups (Acompanhamento):
+    // { "item": { "id": 19, "itemtype": "Ticket", "items_id": 15, "content": "...", "is_private": false }, "event": "new" }
+    // For Ticket Updates:
+    // { "item": { "id": 15, "status": { "id": 5, "name": "Solucionado" } }, "event": "update" }
+
     let ticketId: number | null = null;
     let content: string = "";
     let isPrivate = false;
 
-    if (payload.itemtype === "ITILFollowup" && payload.item) {
+    if (payload.event === "new" && payload.item?.items_id && payload.item?.itemtype === "Ticket") {
       // For Followups
       ticketId = parseInt(payload.item.items_id, 10);
       content = payload.item.content || "";
-      isPrivate = payload.item.is_private == 1;
-    } else if (payload.itemtype === "Ticket" && payload.event === "update" && payload.item?.status) {
+      isPrivate = payload.item.is_private === true || payload.item.is_private == 1;
+    } else if (payload.event === "update" && payload.item?.status && payload.item?.id && !payload.item?.items_id) {
       // For Ticket status updates (e.g. solved)
       ticketId = parseInt(payload.item.id, 10);
+      const statusId = parseInt(payload.item.status.id, 10);
       const statusMap: Record<number, string> = {
         5: "Resolvido",
         6: "Fechado"
       };
-      const statusName = statusMap[parseInt(payload.item.status, 10)];
+      const statusName = statusMap[statusId];
       if (statusName) {
         content = `O chamado #${ticketId} foi marcado como ${statusName} no GLPI.`;
       }
     }
 
     if (!ticketId || !content || isPrivate) {
+      console.log("[GLPI Webhook] Ignored. TicketId:", ticketId, "Content length:", content.length, "isPrivate:", isPrivate);
       return NextResponse.json({ success: true, ignored: true });
     }
 

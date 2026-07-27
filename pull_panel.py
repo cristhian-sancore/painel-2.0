@@ -15,25 +15,22 @@ headers = {
 
 # Wait for github action to finish building
 print("Waiting 45 seconds for GH Actions to build the image...")
-time.sleep(45)
+
 
 print("Pulling latest image and updating stack...")
-res = requests.get(f"{PORTAINER_URL}/api/stacks/{STACK_ID}?endpointId={ENDPOINT_ID}", headers=headers, verify=False)
-stack = res.json()
+with open("docker-compose.panel.yml", "r") as f:
+    compose = f.read()
 
 payload = {
     "env": [],
     "prune": True,
     "pullImage": True,
-    "stackFileContent": stack["EntryPoint"] # wait, entrypoint is docker-compose.yml name, not content! Let's just fetch the file
+    "stackFileContent": compose
 }
-
-res2 = requests.get(f"{PORTAINER_URL}/api/stacks/{STACK_ID}/file", headers=headers, verify=False)
-payload["stackFileContent"] = res2.json()["StackFileContent"]
 
 url = f"{PORTAINER_URL}/api/stacks/{STACK_ID}?endpointId={ENDPOINT_ID}"
 res3 = requests.put(url, headers=headers, json=payload, verify=False)
 if res3.status_code == 200:
-    print("Panel Stack updated successfully! Latest image pulled.")
+    print("Panel Stack updated successfully! Latest image pulled and env injected.")
 else:
     print(f"Error updating stack: {res3.status_code} - {res3.text}")

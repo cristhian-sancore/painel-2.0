@@ -1,0 +1,1 @@
+const { createClient } = require('@libsql/client'); const client = createClient({ url: 'file:./dev.db' }); async function run() { const rs = await client.execute('SELECT id, email, glpiUserId FROM User'); console.log(rs.rows); } run().catch(console.error);  
