@@ -93,7 +93,8 @@ export class ChatwootClient {
       throw new Error(`Failed to fetch inboxes: ${res.statusText}`);
     }
 
-    return await res.json();
+    const data = await res.json();
+    return data.payload || data;
   }
 
   // 3. Get Conversations
