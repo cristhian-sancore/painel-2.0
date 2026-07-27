@@ -139,7 +139,7 @@ export async function createUserAction(formData: FormData) {
                         if (mapSetting) {
                            const inboxesArr = JSON.parse(mapSetting.value);
                            for (const inboxId of inboxesArr) {
-                              const membersRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members?inbox_id=${inboxId}`, { headers: { "api_access_token": platformToken } });
+                              const membersRes = await fetch(`${chatwootUrl}/api/v1/accounts/${cwClient.accountId}/inbox_members?inbox_id=${inboxId}`, { headers: cwClient.headers });
                               if (membersRes.ok) {
                                  const data = await membersRes.json();
                                  const payloadArray = Array.isArray(data) ? data : (data.payload || []);
