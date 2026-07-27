@@ -88,7 +88,11 @@ export class GlpiClient {
 
     if (!res.ok) return null;
     const data = await res.json();
-    return data.data && data.data.length > 0 ? data.data[0] : null;
+    if (data.data && data.data.length > 0) {
+      const u = data.data[0];
+      return { id: u["2"] || u.id, email: u["5"] || u.email || searchTerm };
+    }
+    return null;
   }
 
   public async createUser(name: string, email: string) {
@@ -128,7 +132,11 @@ export class GlpiClient {
 
     if (!res.ok) return null;
     const data = await res.json();
-    return data.data && data.data.length > 0 ? data.data[0] : null;
+    if (data.data && data.data.length > 0) {
+      const g = data.data[0];
+      return { id: g["2"] || g.id, name: g["14"] || g.name };
+    }
+    return null;
   }
 
   public async createGroup(name: string) {
