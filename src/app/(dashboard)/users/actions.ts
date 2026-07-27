@@ -377,7 +377,6 @@ export async function updateUserAction(id: string, formData: FormData) {
     // GLPI Sync for update
     if (updatedUser.glpiUserId && updatedUser.accessGroup?.glpiGroupId) {
        try {
-          const { GlpiClient } = require("@/lib/glpi");
           const glpi = await GlpiClient.init();
           await glpi.addUserToGroup(updatedUser.glpiUserId, updatedUser.accessGroup.glpiGroupId);
           console.log(`[GLPI Sync] Usuário atualizado adicionado ao grupo GLPI: ${updatedUser.accessGroup.glpiGroupId}`);

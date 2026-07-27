@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 import { ChatwootClient } from "@/lib/chatwoot";
+import { GlpiClient } from "@/lib/glpi";
 
 export async function fetchGroupsAction() {
   try {
@@ -76,7 +77,6 @@ export async function createGroupAction(formData: FormData) {
 
     // GLPI Sync for Group
     try {
-      const { GlpiClient } = require("@/lib/glpi");
       const glpi = await GlpiClient.init();
       console.log("[GLPI Sync] Sincronizando grupo:", group.name);
       let glpiGroupId = null;
@@ -153,7 +153,6 @@ export async function updateGroupAction(id: string, formData: FormData) {
 
     // GLPI Sync for Group on Update
     try {
-      const { GlpiClient } = require("@/lib/glpi");
       const glpi = await GlpiClient.init();
       console.log("[GLPI Sync] Sincronizando grupo na edição:", group.name);
       let glpiGroupId = group.glpiGroupId;
