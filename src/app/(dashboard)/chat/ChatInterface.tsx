@@ -400,7 +400,8 @@ export default function ChatInterface({ token, url, publicUrl }: { token: string
     
     setCreatingTicket(true);
     const emailOrPhone = activeConv.meta?.sender?.email || activeConv.meta?.sender?.phone_number || "";
-    const res = await createTicketAction(newTicket.title, newTicket.description, emailOrPhone);
+    const contactName = activeConv.meta?.sender?.name || emailOrPhone || "Desconhecido";
+    const res = await createTicketAction(newTicket.title, newTicket.description, emailOrPhone, contactName, activeConv.id);
     
     if (res.error) {
       alert("Erro ao criar chamado: " + res.error);

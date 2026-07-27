@@ -81,7 +81,7 @@ export async function fetchTicketsAction() {
   }
 }
 
-export async function createTicketAction(title: string, description: string, userPhoneOrEmail: string) {
+export async function createTicketAction(title: string, description: string, userPhoneOrEmail: string, contactName?: string, chatwootConversationId?: number) {
   try {
     const session = await getServerSession(authOptions);
     let requesterId = undefined;
@@ -97,15 +97,36 @@ export async function createTicketAction(title: string, description: string, use
 
     const glpi = await GlpiClient.init();
     
-    // Fallback: Tenta encontrar o usuário fornecido pelo form, se o logado não tiver
-    if (!requesterId && userPhoneOrEmail) {
+    // Tenta encontrar o usuário pelo telefone ou email fornecido pelo Chatwoot
+    if (userPhoneOrEmail) {
       const glpiUser = await glpi.findUser(userPhoneOrEmail);
       if (glpiUser && glpiUser.id) {
         requesterId = glpiUser.id;
+      } else if (contactName) {
+        // Create user in GLPI if not found
+        const newUser = await glpi.createUser(contactName, userPhoneOrEmail);
+        if (newUser && newUser.id) {
+          requesterId = newUser.id;
+        }
       }
     }
 
     const ticket = await glpi.createTicket(title, description, requesterId);
+    
+    if (ticket && ticket.id && chatwootConversationId) {
+      // Find chatwoot account id from settings
+      const cwAccSetting = await prisma.setting.findUnique({ where: { key: "chatwoot_account_id" } });
+      const accountId = cwAccSetting ? parseInt(cwAccSetting.value, 10) : 1;
+      
+      await prisma.ticketConversation.create({
+        data: {
+          glpiTicketId: ticket.id,
+          chatwootConversationId: chatwootConversationId,
+          chatwootAccountId: accountId
+        }
+      });
+    }
+    
     await glpi.killSession();
     
     return { success: true, data: ticket };

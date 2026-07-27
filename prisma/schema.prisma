@@ -38,3 +38,12 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model TicketConversation {
+  id                     String   @id @default(cuid())
+  glpiTicketId           Int      @unique
+  chatwootConversationId Int      @unique
+  chatwootAccountId      Int
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
