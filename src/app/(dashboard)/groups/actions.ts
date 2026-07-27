@@ -115,6 +115,17 @@ export async function deleteGroupAction(id: string) {
       return { success: false, error: `Existem ${usersCount} usuários vinculados a este grupo. Remova-os primeiro.` };
     }
 
+    const group = await prisma.accessGroup.findUnique({ where: { id } });
+    if (group && group.glpiGroupId) {
+       try {
+         const glpi = await GlpiClient.init();
+         await glpi.deleteGroup(group.glpiGroupId);
+         console.log(`[GLPI Sync] Grupo excluído com sucesso. GLPI ID: ${group.glpiGroupId}`);
+       } catch (e: any) {
+         console.error("[GLPI Sync] Erro ao deletar grupo no GLPI:", e.message);
+       }
+    }
+
     await prisma.accessGroup.delete({
       where: { id },
     });

@@ -117,6 +117,21 @@ export class GlpiClient {
     return data.id || null;
   }
 
+  public async deleteUser(id: number) {
+    if (!this.sessionToken) await this.initSession();
+
+    const res = await fetch(`${this.url}/User/${id}?force_purge=true`, {
+      method: "DELETE",
+      headers: this.headers
+    });
+    
+    if (!res.ok) {
+       const errorText = await res.text();
+       throw new Error(`Failed to delete GLPI user: ${errorText}`);
+    }
+    return true;
+  }
+
   public async findGroup(name: string) {
     if (!this.sessionToken) await this.initSession();
 
@@ -160,7 +175,22 @@ export class GlpiClient {
        throw new Error(`Failed to create GLPI group: ${errorText}`);
     }
     const data = await res.json();
-    return data.id || null;
+    return data.id;
+  }
+
+  public async deleteGroup(id: number) {
+    if (!this.sessionToken) await this.initSession();
+
+    const res = await fetch(`${this.url}/Group/${id}?force_purge=true`, {
+      method: "DELETE",
+      headers: this.headers
+    });
+    
+    if (!res.ok) {
+       const errorText = await res.text();
+       throw new Error(`Failed to delete GLPI group: ${errorText}`);
+    }
+    return true;
   }
 
   // Add User to Group

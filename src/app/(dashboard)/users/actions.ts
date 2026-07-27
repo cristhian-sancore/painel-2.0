@@ -273,6 +273,17 @@ export async function createUserAction(formData: FormData) {
 
 export async function deleteUserAction(id: string) {
   try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (user && user.glpiUserId) {
+       try {
+         const glpi = await GlpiClient.init();
+         await glpi.deleteUser(user.glpiUserId);
+         console.log(`[GLPI Sync] Usuário excluído com sucesso. GLPI ID: ${user.glpiUserId}`);
+       } catch (e: any) {
+         console.error("[GLPI Sync] Erro ao deletar usuário no GLPI:", e.message);
+       }
+    }
+
     await prisma.user.delete({
       where: { id },
     });
