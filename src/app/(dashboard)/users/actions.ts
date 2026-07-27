@@ -97,6 +97,7 @@ export async function createUserAction(formData: FormData) {
         try {
           const { ChatwootClient } = require("@/lib/chatwoot");
           const cwClient = await ChatwootClient.init();
+          await cwClient.setAccountId();
           const accountId = cwClient.accountId; // Conta principal recuperada via API
           
           if (!accountId) {
